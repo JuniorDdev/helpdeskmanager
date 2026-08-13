@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}Helpdesk Manager · Operação de suporte em um só lugar{% endblock %}
+{% block content %}
+<div class="landing-page">
+  <nav class="landing-nav" aria-label="Navegação da apresentação">
+    <a class="landing-brand" href="{{ url_for('dashboard.index') }}">
+      <span class="brand-mark">HD</span>
+      <span><strong>Helpdesk</strong><small>Manager</small></span>
+    </a>
+    <div class="landing-nav-links">
+      <a href="#recursos">Recursos</a>
+      <a href="#fluxo">Como funciona</a>
+      <a class="btn btn-outline-primary" href="{{ url_for('auth.login') }}">Entrar</a>
+    </div>
+  </nav>
+
+  <div class="landing-content">
+    <section class="landing-hero">
+      <div class="landing-hero-copy">
+        <span class="landing-eyebrow"><span class="status-dot"></span> Centro de operações de TI</span>
+        <h1>Suporte organizado para decisões mais rápidas.</h1>
+        <p class="landing-lead">Centralize chamados, patrimônio, inventário, manutenções e almoxarifado em uma experiência simples para toda a operação.</p>
+        <div class="landing-actions">
+          <a class="btn btn-primary btn-lg" href="{{ url_for('auth.login') }}">Acessar plataforma <span aria-hidden="true">→</span></a>
+          <a class="landing-text-link" href="#recursos">Conhecer recursos <span aria-hidden="true">↓</span></a>
+        </div>
+        <div class="landing-proof" aria-label="Benefícios da plataforma">
+          <span><strong>360°</strong> visão operacional</span>
+          <span><strong>4</strong> perfis de acesso</span>
+          <span><strong>1</strong> centro de controle</span>
+        </div>
+      </div>
+
+      <div class="landing-visual" aria-label="Prévia do dashboard Helpdesk Manager">
+        <div class="visual-glow visual-glow-one"></div>
+        <div class="visual-glow visual-glow-two"></div>
+        <div class="dashboard-preview">
+          <div class="preview-topbar">
+            <div class="preview-brand"><span class="brand-mark">HD</span><span>Helpdesk Manager</span></div>
+            <span class="preview-avatar">A</span>
+          </div>
+          <div class="preview-body">
+            <div class="preview-sidebar">
+              <span class="preview-line active"></span><span class="preview-line"></span><span class="preview-line"></span><span class="preview-line"></span>
+            </div>
+            <div class="preview-content">
+              <div class="preview-heading"><span><small>Visão geral</small><strong>Olá, Administrador</strong></span><i>↗</i></div>
+              <div class="preview-kpis"><span><small>Chamados</small><strong>24</strong></span><span><small>Máquinas</small><strong>86</strong></span><span><small>Estoque</small><strong>12</strong></span></div>
+              <div class="preview-chart"><div class="preview-chart-head"><span>Atividade de suporte</span><small>Últimos 30 dias</small></div><div class="preview-bars"><i class="bar-1"></i><i class="bar-2"></i><i class="bar-3"></i><i class="bar-4"></i><i class="bar-5"></i><i class="bar-6"></i><i class="bar-7"></i><i class="bar-8"></i></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="floating-stat floating-stat-top"><span class="stat-icon">✓</span><span><strong>92%</strong><small>SLA em dia</small></span></div>
+        <div class="floating-stat floating-stat-bottom"><span class="stat-icon teal">↗</span><span><strong>+18,4%</strong><small>produtividade</small></span></div>
+      </div>
+    </section>
+
+    <section class="landing-section" id="recursos">
+      <div class="section-intro">
+        <span class="landing-eyebrow">Tudo conectado</span>
+        <h2>Uma operação mais previsível, do chamado ao patrimônio.</h2>
+        <p>Ferramentas pensadas para reduzir retrabalho, dar visibilidade ao time e manter cada ativo no lugar certo.</p>
+      </div>
+      <div class="feature-grid">
+        <article class="feature-card feature-card-primary"><span class="feature-icon">◈</span><h3>Chamados e SLA</h3><p>Registre solicitações, acompanhe prioridades e mantenha o atendimento dentro do prazo.</p><a href="{{ url_for('auth.login') }}">Abrir central <span>→</span></a></article>
+        <article class="feature-card"><span class="feature-icon teal">▣</span><h3>Patrimônio e inventário</h3><p>Tenha uma visão confiável das máquinas, responsáveis, locais e conferências.</p><a href="{{ url_for('auth.login') }}">Ver ativos <span>→</span></a></article>
+        <article class="feature-card"><span class="feature-icon orange">▤</span><h3>Almoxarifado</h3><p>Controle itens, níveis mínimos e movimentações para evitar faltas inesperadas.</p><a href="{{ url_for('auth.login') }}">Gerenciar estoque <span>→</span></a></article>
+        <article class="feature-card"><span class="feature-icon purple">⚙</span><h3>Manutenções</h3><p>Organize intervenções, peças, custos e histórico para prolongar a vida dos ativos.</p><a href="{{ url_for('auth.login') }}">Acompanhar manutenção <span>→</span></a></article>
+      </div>
+    </section>
+
+    <section class="landing-flow" id="fluxo">
+      <div class="flow-copy"><span class="landing-eyebrow">Fluxo integrado</span><h2>Do primeiro contato à resolução, sem perder contexto.</h2><p>O time trabalha com uma fonte única de informação e cada perfil acessa apenas o que precisa.</p><a class="btn btn-outline-primary" href="{{ url_for('auth.login') }}">Conhecer o sistema</a></div>
+      <div class="flow-steps"><div class="flow-step"><span>01</span><div><strong>Registrar</strong><p>O chamado ou ativo entra na operação com dados padronizados.</p></div></div><div class="flow-step"><span>02</span><div><strong>Colaborar</strong><p>Equipes acompanham status, responsáveis e próximos passos.</p></div></div><div class="flow-step"><span>03</span><div><strong>Resolver</strong><p>Indicadores e histórico ajudam a agir rápido e melhorar sempre.</p></div></div></div>
+    </section>
+
+    <section class="landing-cta">
+      <div><span class="landing-eyebrow">Pronto para começar?</span><h2>Mais clareza para o suporte. Mais controle para a empresa.</h2></div>
+      <a class="btn btn-light btn-lg" href="{{ url_for('auth.login') }}">Entrar no Helpdesk <span aria-hidden="true">→</span></a>
+    </section>
+  </div>
+
+  <footer class="landing-footer"><span>© {{ now_year|default(2026) }} Helpdesk Manager</span><span>Operação, patrimônio e suporte em um só lugar.</span></footer>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/landing.js') }}"></script>{% endblock %}

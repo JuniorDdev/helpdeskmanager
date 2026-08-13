@@ -27,8 +27,10 @@ def visible_queries():
 
 
 @dashboard_bp.route("/")
-@login_required
 def index():
+    if not current_user.is_authenticated:
+        return render_template("landing/index.html")
+
     chamados, maquinas_query, estoque_query, manutencoes_query = visible_queries()
     total_chamados = chamados.count()
     abertos = chamados.filter(Chamado.status.in_(["aberto", "em_andamento", "aguardando_peca"])).count()
