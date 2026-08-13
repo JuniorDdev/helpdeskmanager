@@ -1,17 +1,27 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2 class="mb-4">Dashboard</h2>
+<section class="page-heading">
+  <div>
+    <h1>Olá, {{ current_user.nome.split(' ')[0] }} 👋</h1>
+    <p>Acompanhe a operação de suporte em um só lugar.</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-primary" href="{{ url_for('chamados.novo') }}">+ Novo chamado</a>
+  </div>
+</section>
+
 <div class="row g-3 mb-4">
-  <div class="col-md"><div class="card card-kpi p-3"><span>Chamados</span><h3>{{ total_chamados }}</h3></div></div>
-  <div class="col-md"><div class="card card-kpi p-3"><span>Abertos</span><h3>{{ abertos }}</h3></div></div>
-  <div class="col-md"><div class="card card-kpi p-3"><span>Máquinas</span><h3>{{ maquinas }}</h3></div></div>
-  <div class="col-md"><div class="card card-kpi p-3"><span>Estoque baixo</span><h3>{{ estoque_baixo }}</h3></div></div>
-  <div class="col-md"><div class="card card-kpi p-3"><span>Manutenções</span><h3>{{ manutencoes }}</h3></div></div>
+  <div class="col-6 col-xl"><div class="card card-kpi"><span class="kpi-icon">◈</span><span class="kpi-label">Chamados totais</span><strong class="kpi-value">{{ total_chamados }}</strong><span class="kpi-accent"></span></div></div>
+  <div class="col-6 col-xl"><div class="card card-kpi"><span class="kpi-icon">◷</span><span class="kpi-label">Em atendimento</span><strong class="kpi-value">{{ abertos }}</strong><span class="kpi-accent accent-teal"></span></div></div>
+  <div class="col-6 col-xl"><div class="card card-kpi"><span class="kpi-icon">▣</span><span class="kpi-label">Máquinas</span><strong class="kpi-value">{{ maquinas }}</strong><span class="kpi-accent accent-purple"></span></div></div>
+  <div class="col-6 col-xl"><div class="card card-kpi"><span class="kpi-icon">▤</span><span class="kpi-label">Estoque baixo</span><strong class="kpi-value">{{ estoque_baixo }}</strong><span class="kpi-accent accent-warning"></span></div></div>
+  <div class="col-6 col-xl"><div class="card card-kpi"><span class="kpi-icon">⚙</span><span class="kpi-label">Manutenções</span><strong class="kpi-value">{{ manutencoes }}</strong><span class="kpi-accent accent-danger"></span></div></div>
 </div>
-<div class="row g-3">
-  <div class="col-md-4"><div class="table-card p-3"><canvas id="graficoStatus"></canvas></div></div>
-  <div class="col-md-4"><div class="table-card p-3"><canvas id="graficoCategoria"></canvas></div></div>
-  <div class="col-md-4"><div class="table-card p-3"><canvas id="graficoMaquinas"></canvas></div></div>
-</div>
+
+<section class="row g-3">
+  <div class="col-lg-4"><div class="chart-card"><div class="chart-card-header"><strong>Chamados por status</strong><span>Visão geral</span></div><canvas id="graficoStatus"></canvas></div></div>
+  <div class="col-lg-4"><div class="chart-card"><div class="chart-card-header"><strong>Chamados por categoria</strong><span>Distribuição</span></div><canvas id="graficoCategoria"></canvas></div></div>
+  <div class="col-lg-4"><div class="chart-card"><div class="chart-card-header"><strong>Máquinas por status</strong><span>Patrimônio</span></div><canvas id="graficoMaquinas"></canvas></div></div>
+</section>
 {% endblock %}
 {% block scripts %}<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>{% endblock %}
