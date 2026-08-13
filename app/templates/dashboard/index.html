@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2 class="mb-4">Dashboard</h2>
+<div class="row g-3 mb-4">
+  <div class="col-md"><div class="card card-kpi p-3"><span>Chamados</span><h3>{{ total_chamados }}</h3></div></div>
+  <div class="col-md"><div class="card card-kpi p-3"><span>Abertos</span><h3>{{ abertos }}</h3></div></div>
+  <div class="col-md"><div class="card card-kpi p-3"><span>Máquinas</span><h3>{{ maquinas }}</h3></div></div>
+  <div class="col-md"><div class="card card-kpi p-3"><span>Estoque baixo</span><h3>{{ estoque_baixo }}</h3></div></div>
+  <div class="col-md"><div class="card card-kpi p-3"><span>Manutenções</span><h3>{{ manutencoes }}</h3></div></div>
+</div>
+<div class="row g-3">
+  <div class="col-md-4"><div class="table-card p-3"><canvas id="graficoStatus"></canvas></div></div>
+  <div class="col-md-4"><div class="table-card p-3"><canvas id="graficoCategoria"></canvas></div></div>
+  <div class="col-md-4"><div class="table-card p-3"><canvas id="graficoMaquinas"></canvas></div></div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>{% endblock %}

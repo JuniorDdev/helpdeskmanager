@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Nova Movimentação</h2>
+<div class="form-card"><form method="post" class="row g-3">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="col-md-6"><label class="form-label">Máquina</label><select name="maquina_id" class="form-select" required>{% for m in maquinas %}<option value="{{ m.id }}">{{ m.patrimonio }} - {{ m.nome_maquina }}</option>{% endfor %}</select></div>
+<div class="col-md-6"><label class="form-label">Novo setor</label><select name="setor_novo_id" class="form-select"><option value="">Nenhum</option>{% for s in setores %}<option value="{{ s.id }}">{{ s.nome }}</option>{% endfor %}</select></div>
+<div class="col-md-6"><label class="form-label">Novo local</label><input name="local_novo" class="form-control" required></div>
+<div class="col-md-6"><label class="form-label">Novo usuário responsável</label><select name="usuario_novo_id" class="form-select"><option value="">Nenhum</option>{% for u in usuarios %}<option value="{{ u.id }}">{{ u.nome }}</option>{% endfor %}</select></div>
+<div class="col-md-6"><label class="form-label">Autorizado por</label><select name="autorizado_por_id" class="form-select"><option value="">Não informado</option>{% for u in usuarios %}<option value="{{ u.id }}">{{ u.nome }}</option>{% endfor %}</select></div>
+<div class="col-12"><label class="form-label">Motivo</label><textarea name="motivo" class="form-control"></textarea></div>
+<div class="col-12"><button class="btn btn-primary">Registrar movimentação</button></div>
+</form></div>
+{% endblock %}

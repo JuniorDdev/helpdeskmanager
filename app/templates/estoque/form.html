@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>{{ 'Editar' if item else 'Novo' }} item de estoque</h2>
+<div class="form-card"><form method="post" class="row g-3">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="col-md-6"><label class="form-label" for="nome_item">Nome do item</label><input id="nome_item" name="nome_item" class="form-control" maxlength="120" value="{{ request.form.get('nome_item', item.nome_item if item else '') }}" required></div>
+<div class="col-md-3"><label class="form-label" for="categoria">Categoria</label><input id="categoria" name="categoria" class="form-control" maxlength="80" value="{{ request.form.get('categoria', item.categoria if item and item.categoria else '') }}"></div>
+<div class="col-md-3"><label class="form-label" for="unidade">Unidade</label><input id="unidade" name="unidade" class="form-control" maxlength="30" value="{{ request.form.get('unidade', item.unidade if item else 'unidade') }}"></div>
+<div class="col-md-3"><label class="form-label" for="quantidade">Quantidade</label><input id="quantidade" name="quantidade" type="number" min="0" class="form-control" value="{{ request.form.get('quantidade', item.quantidade if item else 0) }}" required></div>
+<div class="col-md-3"><label class="form-label" for="estoque_minimo">Estoque mínimo</label><input id="estoque_minimo" name="estoque_minimo" type="number" min="0" class="form-control" value="{{ request.form.get('estoque_minimo', item.estoque_minimo if item else 0) }}" required></div>
+<div class="col-md-6"><label class="form-label" for="local_armazenamento">Local de armazenamento</label><input id="local_armazenamento" name="local_armazenamento" class="form-control" maxlength="120" value="{{ request.form.get('local_armazenamento', item.local_armazenamento if item and item.local_armazenamento else '') }}"></div>
+<div class="col-12"><label class="form-label" for="descricao">Descrição</label><textarea id="descricao" name="descricao" class="form-control">{{ request.form.get('descricao', item.descricao if item and item.descricao else '') }}</textarea></div>
+<div class="col-12"><button class="btn btn-primary" type="submit">Salvar</button></div>
+</form></div>
+{% endblock %}

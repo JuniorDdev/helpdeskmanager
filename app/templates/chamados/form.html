@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block content %}
+{% set status_atual = request.form.get('status', chamado.status if chamado else 'aberto') %}
+{% set categoria_atual = request.form.get('categoria', chamado.categoria if chamado else 'computador') %}
+{% set prioridade_atual = request.form.get('prioridade', chamado.prioridade if chamado else 'media') %}
+{% set tecnico_atual = request.form.get('tecnico_id', chamado.tecnico_id if chamado and chamado.tecnico_id else '') | string %}
+{% set maquina_atual = request.form.get('maquina_id', chamado.maquina_id if chamado and chamado.maquina_id else '') | string %}
+{% set setor_atual = request.form.get('setor_id', chamado.setor_id if chamado and chamado.setor_id else '') | string %}
+<h2>{{ 'Editar' if chamado else 'Novo' }} chamado</h2>
+<div class="form-card">
+<form method="post" class="row g-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="col-md-8"><label class="form-label" for="titulo">Título</label><input id="titulo" name="titulo" class="form-control" maxlength="150" value="{{ request.form.get('titulo', chamado.titulo if chamado else '') }}" required></div>
+  <div class="col-md-4">
+    <label class="form-label" for="status">Status</label>
+    {% if suporte %}
+    <select id="status" name="status" class="form-select">
+      {% for value, label in [('aberto','Aberto'),('em_andamento','Em andamento'),('aguardando_peca','Aguardando peça'),('finalizado','Finalizado'),('cancelado','Cancelado')] %}
+      <option value="{{ value }}" {{ 'selected' if status_atual == value }}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    {% else %}<input class="form-control" value="{{ status_atual }}" disabled>{% endif %}
+  </div>
+  <div class="col-md-4"><label class="form-label" for="categoria">Categoria</label><select id="categoria" name="categoria" class="form-select">{% for value, label in [('computador','Computador'),('impressora','Impressora'),('rede','Rede'),('sistema','Sistema'),('internet','Internet'),('ramal','Ramal'),('outros','Outros')] %}<option value="{{ value }}" {{ 'selected' if categoria_atual == value }}>{{ label }}</option>{% endfor %}</select></div>
+  <div class="col-md-4"><label class="form-label" for="prioridade">Prioridade</label><select id="prioridade" name="prioridade" class="form-select">{% for value, label in [('baixa','Baixa'),('media','Média'),('alta','Alta'),('critica','Crítica')] %}<option value="{{ value }}" {{ 'selected' if prioridade_atual == value }}>{{ label }}</option>{% endfor %}</select></div>
+  {% if suporte %}
+  <div class="col-md-4"><label class="form-label" for="tecnico_id">Técnico</label><select id="tecnico_id" name="tecnico_id" class="form-select"><option value="">Não atribuído</option>{% for t in tecnicos %}<option value="{{ t.id }}" {{ 'selected' if tecnico_atual == (t.id|string) }}>{{ t.nome }}</option>{% endfor %}</select></div>
+  {% endif %}
+  <div class="col-md-6"><label class="form-label" for="maquina_id">Máquina</label><select id="maquina_id" name="maquina_id" class="form-select"><option value="">Nenhuma</option>{% for m in maquinas %}<option value="{{ m.id }}" {{ 'selected' if maquina_atual == (m.id|string) }}>{{ m.patrimonio }} - {{ m.nome_maquina }}</option>{% endfor %}</select></div>
+  <div class="col-md-6"><label class="form-label" for="setor_id">Setor</label><select id="setor_id" name="setor_id" class="form-select"><option value="">Nenhum</option>{% for s in setores %}<option value="{{ s.id }}" {{ 'selected' if setor_atual == (s.id|string) }}>{{ s.nome }}</option>{% endfor %}</select></div>
+  <div class="col-12"><label class="form-label" for="descricao">Descrição</label><textarea id="descricao" name="descricao" class="form-control" required>{{ request.form.get('descricao', chamado.descricao if chamado else '') }}</textarea></div>
+  {% if suporte %}
+  <div class="col-12"><label class="form-label" for="observacao_final">Observação final</label><textarea id="observacao_final" name="observacao_final" class="form-control">{{ request.form.get('observacao_final', chamado.observacao_final if chamado and chamado.observacao_final else '') }}</textarea></div>
+  {% endif %}
+  <div class="col-12"><button class="btn btn-primary" type="submit">Salvar</button></div>
+</form>
+</div>
+{% endblock %}

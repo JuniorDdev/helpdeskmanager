@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <h2>Almoxarifado TI</h2>
+  <div>
+    <a class="btn btn-outline-success" href="{{ url_for('estoque.exportar_excel') }}">Excel</a>
+    <a class="btn btn-outline-danger" href="{{ url_for('estoque.exportar_pdf') }}">PDF</a>
+    {% if current_user.perfil in ['admin', 'almoxarife'] %}<a class="btn btn-primary" href="{{ url_for('estoque.novo') }}">Novo item</a>{% endif %}
+  </div>
+</div>
+<div class="table-card table-responsive">
+<table class="table table-hover mb-0">
+  <thead><tr><th>Item</th><th>Categoria</th><th>Qtd</th><th>Mínimo</th><th>Local</th><th>Status</th><th>Ação</th></tr></thead>
+  <tbody>
+  {% for i in itens %}
+  <tr>
+    <td>{{ i.nome_item }}</td><td>{{ i.categoria or '-' }}</td><td>{{ i.quantidade }}</td><td>{{ i.estoque_minimo }}</td><td>{{ i.local_armazenamento or '-' }}</td>
+    <td>{% if i.baixo_estoque %}<span class="badge bg-danger">Baixo</span>{% else %}<span class="badge bg-success">OK</span>{% endif %}</td>
+    <td>
+      {% if current_user.perfil in ['admin', 'almoxarife'] %}
+      <a class="btn btn-sm btn-outline-primary mb-1" href="{{ url_for('estoque.movimentar', id=i.id) }}">Movimentar</a>
+      <a class="btn btn-sm btn-outline-secondary mb-1" href="{{ url_for('estoque.editar', id=i.id) }}">Editar</a>
+      {% endif %}
+      {% if current_user.perfil == 'admin' %}
+      <form method="post" action="{{ url_for('estoque.excluir', id=i.id) }}" class="d-inline-block mt-1" data-confirm="Confirma a exclusão do item?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="password" name="senha_admin" class="form-control form-control-sm mb-1" placeholder="Senha admin" autocomplete="current-password" required>
+        <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
+      </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% else %}<tr><td colspan="7" class="text-center text-muted py-4">Nenhum item cadastrado.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{% include '_pagination.html' %}
+{% endblock %}

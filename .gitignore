@@ -1,0 +1,16 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+*.sqlite3
+
+uploads/*
+!uploads/.gitkeep
+backups/*
+!backups/.gitkeep
+reports/*
+!reports/.gitkeep
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

@@ -1,0 +1,21 @@
+body { background: #f5f7fb; }
+.sidebar { min-height: 100vh; background: linear-gradient(180deg, #0f172a, #1e293b); }
+.sidebar a { color: #e2e8f0; text-decoration: none; display: block; padding: 10px 14px; border-radius: 8px; margin-bottom: 4px; }
+.sidebar a:hover { background: rgba(255,255,255,.12); }
+.card-kpi { border: 0; border-radius: 18px; box-shadow: 0 8px 25px rgba(15,23,42,.08); }
+.table-card { border-radius: 18px; overflow: hidden; box-shadow: 0 8px 25px rgba(15,23,42,.08); background: white; }
+.badge-status { text-transform: uppercase; letter-spacing: .04em; }
+.form-card { background: white; border-radius: 18px; padding: 24px; box-shadow: 0 8px 25px rgba(15,23,42,.08); }
+.logout-form { margin: 0; }
+.sidebar-link-button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: #e2e8f0;
+  cursor: pointer;
+  display: block;
+  padding: 10px 14px;
+  text-align: left;
+  width: 100%;
+}
+.sidebar-link-button:hover { background: rgba(255,255,255,.12); border-radius: 8px; }

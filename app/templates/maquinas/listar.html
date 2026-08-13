@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <h2>Máquinas / Patrimônio</h2>
+  <div>
+    <a class="btn btn-outline-secondary" href="{{ url_for('maquinas.conferencia') }}">Inventário</a>
+    <a class="btn btn-outline-success" href="{{ url_for('maquinas.exportar_excel') }}">Excel</a>
+    <a class="btn btn-outline-danger" href="{{ url_for('maquinas.exportar_pdf') }}">PDF</a>
+    <a class="btn btn-primary" href="{{ url_for('maquinas.nova') }}">Nova máquina</a>
+  </div>
+</div>
+<div class="table-card table-responsive">
+<table class="table table-hover mb-0">
+  <thead><tr><th>Patrimônio</th><th>Nome</th><th>Setor</th><th>Local</th><th>IP</th><th>Status</th><th>Ação</th></tr></thead>
+  <tbody>
+  {% for m in maquinas %}
+  <tr>
+    <td>{{ m.patrimonio }}</td><td>{{ m.nome_maquina }}</td><td>{{ m.setor.nome if m.setor else '-' }}</td><td>{{ m.localizacao or '-' }}</td><td>{{ m.ip or '-' }}</td><td><span class="badge bg-info">{{ m.status }}</span></td>
+    <td>
+      <a class="btn btn-sm btn-outline-primary mb-1" href="{{ url_for('maquinas.editar', id=m.id) }}">Editar</a>
+      {% if current_user.perfil == 'admin' %}
+      <form method="post" action="{{ url_for('maquinas.excluir', id=m.id) }}" class="d-inline-block mt-1" data-confirm="Confirma a exclusão da máquina?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="password" name="senha_admin" class="form-control form-control-sm mb-1" placeholder="Senha admin" autocomplete="current-password" required>
+        <button class="btn btn-sm btn-outline-danger" type="submit">Excluir</button>
+      </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% else %}<tr><td colspan="7" class="text-center text-muted py-4">Nenhuma máquina cadastrada.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{% include '_pagination.html' %}
+{% endblock %}

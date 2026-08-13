@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Movimentar estoque: {{ item.nome_item }}</h2>
+<p class="text-muted">Saldo atual: <strong>{{ item.quantidade }}</strong></p>
+<div class="form-card"><form method="post" class="row g-3">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="col-md-4"><label class="form-label" for="tipo">Tipo</label><select id="tipo" name="tipo" class="form-select"><option value="entrada">Entrada</option><option value="saida">Saída</option></select></div>
+<div class="col-md-4"><label class="form-label" for="quantidade">Quantidade</label><input id="quantidade" name="quantidade" type="number" class="form-control" min="1" required></div>
+<div class="col-md-4"><label class="form-label" for="autorizado_por_id">Autorizado por</label><select id="autorizado_por_id" name="autorizado_por_id" class="form-select"><option value="">Não informado</option>{% for u in usuarios %}<option value="{{ u.id }}">{{ u.nome }}</option>{% endfor %}</select></div>
+<div class="col-md-6"><label class="form-label" for="chamado_id">Vincular chamado</label><select id="chamado_id" name="chamado_id" class="form-select"><option value="">Nenhum</option>{% for c in chamados %}<option value="{{ c.id }}">#{{ c.id }} - {{ c.titulo }}</option>{% endfor %}</select></div>
+<div class="col-12"><label class="form-label" for="observacao">Observação</label><textarea id="observacao" name="observacao" class="form-control"></textarea></div>
+<div class="col-12"><button class="btn btn-primary" type="submit">Registrar</button></div>
+</form></div>
+{% endblock %}

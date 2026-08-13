@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block content %}
+{% set status_atual = request.form.get('status', maquina.status if maquina else 'ativa') %}
+{% set usuario_atual = request.form.get('usuario_responsavel_id', maquina.usuario_responsavel_id if maquina and maquina.usuario_responsavel_id else '') | string %}
+{% set setor_atual = request.form.get('setor_id', maquina.setor_id if maquina and maquina.setor_id else '') | string %}
+<h2>{{ 'Editar' if maquina else 'Nova' }} máquina</h2>
+<div class="form-card"><form method="post" class="row g-3">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="col-md-4"><label class="form-label" for="patrimonio">Patrimônio</label><input id="patrimonio" name="patrimonio" class="form-control" maxlength="50" value="{{ request.form.get('patrimonio', maquina.patrimonio if maquina else '') }}" required></div>
+<div class="col-md-4"><label class="form-label" for="nome_maquina">Nome da máquina</label><input id="nome_maquina" name="nome_maquina" class="form-control" maxlength="100" value="{{ request.form.get('nome_maquina', maquina.nome_maquina if maquina else '') }}" required></div>
+<div class="col-md-4"><label class="form-label" for="status">Status</label><select id="status" name="status" class="form-select">{% for value, label in [('ativa','Ativa'),('manutencao','Manutenção'),('reserva','Reserva'),('baixada','Baixada')] %}<option value="{{ value }}" {{ 'selected' if status_atual == value }}>{{ label }}</option>{% endfor %}</select></div>
+<div class="col-md-6"><label class="form-label" for="usuario_responsavel_id">Usuário responsável</label><select id="usuario_responsavel_id" name="usuario_responsavel_id" class="form-select"><option value="">Nenhum</option>{% for u in usuarios %}<option value="{{ u.id }}" {{ 'selected' if usuario_atual == (u.id|string) }}>{{ u.nome }}</option>{% endfor %}</select></div>
+<div class="col-md-6"><label class="form-label" for="setor_id">Setor</label><select id="setor_id" name="setor_id" class="form-select"><option value="">Nenhum</option>{% for s in setores %}<option value="{{ s.id }}" {{ 'selected' if setor_atual == (s.id|string) }}>{{ s.nome }}</option>{% endfor %}</select></div>
+<div class="col-md-4"><label class="form-label" for="localizacao">Localização</label><input id="localizacao" name="localizacao" class="form-control" maxlength="150" value="{{ request.form.get('localizacao', maquina.localizacao if maquina and maquina.localizacao else '') }}"></div>
+<div class="col-md-4"><label class="form-label" for="processador">Processador</label><input id="processador" name="processador" class="form-control" maxlength="120" value="{{ request.form.get('processador', maquina.processador if maquina and maquina.processador else '') }}"></div>
+<div class="col-md-4"><label class="form-label" for="memoria_ram">RAM</label><input id="memoria_ram" name="memoria_ram" class="form-control" maxlength="50" value="{{ request.form.get('memoria_ram', maquina.memoria_ram if maquina and maquina.memoria_ram else '') }}"></div>
+<div class="col-md-4"><label class="form-label" for="armazenamento">SSD/HD</label><input id="armazenamento" name="armazenamento" class="form-control" maxlength="80" value="{{ request.form.get('armazenamento', maquina.armazenamento if maquina and maquina.armazenamento else '') }}"></div>
+<div class="col-md-4"><label class="form-label" for="sistema_operacional">Sistema operacional</label><input id="sistema_operacional" name="sistema_operacional" class="form-control" maxlength="100" value="{{ request.form.get('sistema_operacional', maquina.sistema_operacional if maquina and maquina.sistema_operacional else '') }}"></div>
+<div class="col-md-2"><label class="form-label" for="ip">IP</label><input id="ip" name="ip" class="form-control" maxlength="45" value="{{ request.form.get('ip', maquina.ip if maquina and maquina.ip else '') }}"></div>
+<div class="col-md-2"><label class="form-label" for="mac_address">MAC</label><input id="mac_address" name="mac_address" class="form-control" maxlength="50" placeholder="AA:BB:CC:DD:EE:FF" value="{{ request.form.get('mac_address', maquina.mac_address if maquina and maquina.mac_address else '') }}"></div>
+<div class="col-12"><label class="form-label" for="observacao">Observação</label><textarea id="observacao" name="observacao" class="form-control">{{ request.form.get('observacao', maquina.observacao if maquina and maquina.observacao else '') }}</textarea></div>
+<div class="col-12"><button class="btn btn-primary" type="submit">Salvar</button></div>
+</form></div>
+{% endblock %}

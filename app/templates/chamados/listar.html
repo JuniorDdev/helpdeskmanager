@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <h2>Chamados</h2>
+  <div>
+    <a class="btn btn-outline-success" href="{{ url_for('chamados.exportar_excel') }}">Excel</a>
+    <a class="btn btn-outline-danger" href="{{ url_for('chamados.exportar_pdf') }}">PDF</a>
+    <a class="btn btn-primary" href="{{ url_for('chamados.novo') }}">Novo chamado</a>
+  </div>
+</div>
+<div class="table-card table-responsive">
+  <table class="table table-hover mb-0">
+    <thead><tr><th>#</th><th>Título</th><th>Categoria</th><th>Prioridade</th><th>Status</th><th>SLA</th><th>Técnico</th><th>Ação</th></tr></thead>
+    <tbody>
+    {% for c in chamados %}
+      <tr>
+        <td>{{ c.id }}</td><td>{{ c.titulo }}</td><td>{{ c.categoria }}</td><td>{{ c.prioridade }}</td>
+        <td><span class="badge bg-secondary badge-status">{{ c.status }}</span></td>
+        <td>{% set sla = sla_status.get(c.id) %}{% if sla %}<span class="badge bg-{{ sla.class }}" title="Prazo: {{ sla.deadline.strftime('%d/%m/%Y %H:%M') }}">{{ sla.label }}</span>{% else %}-{% endif %}</td>
+        <td>{{ c.tecnico.nome if c.tecnico else '-' }}</td>
+        <td>
+          {% if current_user.perfil in ['admin', 'tecnico'] or c.status == 'aberto' %}
+          <a class="btn btn-sm btn-outline-primary" href="{{ url_for('chamados.editar', id=c.id) }}">Editar</a>
+          {% else %}<span class="text-muted">Somente leitura</span>{% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" class="text-center text-muted py-4">Nenhum chamado encontrado.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include '_pagination.html' %}
+{% endblock %}

@@ -1,0 +1,37 @@
+﻿{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <h2>Conferencia (campos livres)</h2>
+</div>
+<div class="form-card mb-3">
+  <form method="post" class="row g-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-md-3"><label class="form-label">Patrimonio</label><input name="patrimonio" class="form-control"></div>
+    <div class="col-md-3"><label class="form-label">Nome da maquina</label><input name="nome_maquina" class="form-control"></div>
+    <div class="col-md-2"><label class="form-label">Setor</label><input name="setor" class="form-control"></div>
+    <div class="col-md-2"><label class="form-label">Localizacao</label><input name="localizacao" class="form-control"></div>
+    <div class="col-md-2"><label class="form-label">Status</label>
+      <select name="status_conferencia" class="form-select">
+        <option value="ok">OK</option>
+        <option value="pendente">Pendente</option>
+        <option value="inconsistente">Inconsistente</option>
+      </select>
+    </div>
+    <div class="col-12"><label class="form-label">Observacao</label><textarea name="observacao" class="form-control"></textarea></div>
+    <div class="col-12"><button class="btn btn-primary">Salvar conferencia</button></div>
+  </form>
+</div>
+<div class="table-card">
+  <table class="table table-hover mb-0">
+    <thead><tr><th>#</th><th>Patrimonio</th><th>Maquina</th><th>Setor</th><th>Localizacao</th><th>Status</th><th>Usuario</th><th>Data</th></tr></thead>
+    <tbody>
+      {% for r in registros %}
+      <tr>
+        <td>{{ r.id }}</td><td>{{ r.patrimonio or '-' }}</td><td>{{ r.nome_maquina or '-' }}</td><td>{{ r.setor or '-' }}</td><td>{{ r.localizacao or '-' }}</td><td>{{ r.status_conferencia }}</td><td>{{ r.usuario.nome }}</td><td>{{ r.conferido_em.strftime('%d/%m/%Y %H:%M') if r.conferido_em else '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% include '_pagination.html' %}
+{% endblock %}

@@ -1,0 +1,15 @@
+﻿{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <h2>Manutencoes</h2>
+  <div>
+    <a class="btn btn-outline-success" href="{{ url_for('manutencoes.exportar_excel') }}">Excel</a>
+    <a class="btn btn-outline-danger" href="{{ url_for('manutencoes.exportar_pdf') }}">PDF</a>
+    <a class="btn btn-primary" href="{{ url_for('manutencoes.nova') }}">Nova manutencao</a>
+  </div>
+</div>
+<div class="table-card"><table class="table table-hover mb-0"><thead><tr><th>#</th><th>Maquina</th><th>Tipo</th><th>Tecnico</th><th>Peca</th><th>Custo</th><th>Data</th></tr></thead><tbody>
+{% for m in manutencoes %}<tr><td>{{ m.id }}</td><td>{{ m.maquina.patrimonio if m.maquina else '' }} - {{ m.maquina.nome_maquina if m.maquina else '' }}</td><td>{{ m.tipo }}</td><td>{{ m.tecnico.nome if m.tecnico else '' }}</td><td>{{ m.peca_utilizada }}</td><td>R$ {{ m.custo }}</td><td>{{ m.data_manutencao.strftime('%d/%m/%Y') if m.data_manutencao else '' }}</td></tr>{% endfor %}
+</tbody></table></div>
+{% include '_pagination.html' %}
+{% endblock %}

@@ -1,0 +1,41 @@
+﻿{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+  <h2>Conferencia de Maquinas</h2>
+  <a class="btn btn-outline-secondary" href="{{ url_for('maquinas.listar') }}">Voltar</a>
+</div>
+<div class="table-card">
+<table class="table table-hover mb-0">
+  <thead><tr><th>Patrimonio</th><th>Maquina</th><th>Status Atual</th><th>Ultima conferencia</th><th>Registrar</th></tr></thead>
+  <tbody>
+  {% for m in maquinas %}
+    {% set ultima = m.conferencias[-1] if m.conferencias else None %}
+    <tr>
+      <td>{{ m.patrimonio }}</td>
+      <td>{{ m.nome_maquina }}</td>
+      <td>{{ m.status }}</td>
+      <td>
+        {% if ultima %}
+          {{ ultima.status_conferencia }} por {{ ultima.usuario.nome }} em {{ ultima.conferido_em.strftime('%d/%m/%Y %H:%M') }}
+        {% else %}
+          Sem conferencia
+        {% endif %}
+      </td>
+      <td>
+        <form method="post" action="{{ url_for('maquinas.conferir', id=m.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <select name="status_conferencia" class="form-select form-select-sm mb-1" required>
+            <option value="ok">OK</option>
+            <option value="pendente">Pendente</option>
+            <option value="inconsistente">Inconsistente</option>
+          </select>
+          <input name="observacao" class="form-control form-control-sm mb-1" placeholder="Observacao">
+          <button class="btn btn-sm btn-success">Salvar conferencia</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}
