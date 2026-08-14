@@ -9,3 +9,4 @@ from app.models.sla import SlaRegra
 from app.models.qrcode_maquina import QRCodeMaquina
 from app.models.conferencia_maquina import ConferenciaMaquina
 from app.models.conferencia_livre import ConferenciaLivre
+from app.models.agenda import AgendamentoLaboratorio, Laboratorio, Recado

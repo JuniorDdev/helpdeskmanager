@@ -37,6 +37,7 @@ def create_app(config_overrides=None):
         return usuario if usuario and usuario.ativo else None
 
     from app.routes.auth import auth_bp
+    from app.routes.agenda import agenda_bp
     from app.routes.chamados import chamados_bp
     from app.routes.conferencias import conferencias_bp
     from app.routes.dashboard import dashboard_bp
@@ -46,6 +47,7 @@ def create_app(config_overrides=None):
     from app.routes.movimentacoes import movimentacoes_bp
 
     app.register_blueprint(auth_bp)
+    app.register_blueprint(agenda_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(chamados_bp)
     app.register_blueprint(maquinas_bp)
@@ -53,6 +55,10 @@ def create_app(config_overrides=None):
     app.register_blueprint(manutencoes_bp)
     app.register_blueprint(movimentacoes_bp)
     app.register_blueprint(conferencias_bp)
+
+    from app.cli import importar_agenda_excel_command
+
+    app.cli.add_command(importar_agenda_excel_command)
 
     @app.after_request
     def add_security_headers(response):
