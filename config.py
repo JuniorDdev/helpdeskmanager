@@ -18,15 +18,21 @@ def env_bool(name, default=False):
 
 
 def build_database_uri():
-    explicit_uri = os.getenv("DATABASE_URL")
+    # Railway fornece MYSQL_URL; DATABASE_URL continua sendo a opção padrão
+    # para outros provedores e para ambientes locais.
+    explicit_uri = os.getenv("DATABASE_URL") or os.getenv("MYSQL_URL")
     if explicit_uri:
+        # O esquema mysql:// pode selecionar um driver não instalado. O
+        # projeto usa PyMySQL explicitamente em todos os ambientes.
+        if explicit_uri.startswith("mysql://"):
+            explicit_uri = "mysql+pymysql://" + explicit_uri[len("mysql://") :]
         return explicit_uri
 
-    user = quote_plus(os.getenv("DB_USER", "root"))
-    password = quote_plus(os.getenv("DB_PASSWORD", ""))
-    host = os.getenv("DB_HOST", "localhost")
-    port = os.getenv("DB_PORT", "3306")
-    name = os.getenv("DB_NAME", "helpdesk_manager")
+    user = quote_plus(os.getenv("DB_USER") or os.getenv("MYSQLUSER", "root"))
+    password = quote_plus(os.getenv("DB_PASSWORD") or os.getenv("MYSQLPASSWORD", ""))
+    host = os.getenv("DB_HOST") or os.getenv("MYSQLHOST", "localhost")
+    port = os.getenv("DB_PORT") or os.getenv("MYSQLPORT", "3306")
+    name = os.getenv("DB_NAME") or os.getenv("MYSQLDATABASE", "helpdesk_manager")
     return f"mysql+pymysql://{user}:{password}@{host}:{port}/{name}?charset=utf8mb4"
 
 

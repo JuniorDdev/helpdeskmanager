@@ -2,6 +2,17 @@
 
 Sistema web em Flask para chamados de suporte, patrimonio de maquinas, movimentacao de equipamentos, estoque de TI, manutencoes e conferencias.
 
+## Autoria e licença
+
+Desenvolvido por **Domingos Junior (JuniorDdev)**.
+
+Copyright © 2026 Domingos Junior. Todos os direitos reservados. Este projeto
+está sob licença proprietária. A visualização e os forks realizados pelas
+funcionalidades do GitHub são permitidos, mas cópia, modificação, distribuição,
+uso comercial ou criação de obras derivadas exigem autorização prévia e por
+escrito do titular. Consulte o arquivo [LICENSE](LICENSE) para os termos
+completos.
+
 ## Tecnologias
 
 - Python 3.11+
@@ -80,6 +91,30 @@ flask --app app.py db upgrade
 ```
 
 Nao inclua `.env`, `.venv`, uploads, backups ou dados exportados no controle de versao.
+
+## Deploy no Railway
+
+O repositorio inclui `wsgi.py` e `Procfile` para iniciar o Flask com Gunicorn.
+Depois de conectar o repositorio ao Railway:
+
+1. Adicione um servico MySQL ao projeto.
+2. No servico web, crie `SECRET_KEY`, `ADMIN_EMAIL` e `ADMIN_PASSWORD` como variaveis privadas.
+3. Crie `DATABASE_URL` como referencia para `MYSQL_URL` do servico MySQL:
+   `${{MySQL.MYSQL_URL}}` (use o nome exato do seu servico).
+4. Mantenha `FLASK_DEBUG=0` e `SESSION_COOKIE_SECURE=1`.
+5. Se o Railway nao detectar o `Procfile`, defina o Start Command como:
+
+```text
+gunicorn wsgi:application --bind 0.0.0.0:$PORT
+```
+
+Depois do primeiro deploy, abra o Console do servico web e execute uma vez:
+
+```bash
+python init_db.py
+```
+
+O Railway injeta `PORT` automaticamente; nao fixe a porta 5000 no ambiente de producao.
 
 ## Producao
 
