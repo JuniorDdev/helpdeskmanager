@@ -1,6 +1,6 @@
 # Helpdesk Manager
 
-Sistema web em Flask para chamados de suporte, patrimonio de maquinas, movimentacao de equipamentos, estoque de TI, manutencoes e conferencias.
+Sistema web em Flask para chamados de suporte, patrimonio de maquinas, movimentacao de equipamentos, estoque de TI, manutencoes, conferencias e agenda de laboratorios com mural de recados.
 
 ## Autoria e licença
 
@@ -53,6 +53,8 @@ python init_db.py
 
 O comando cria o administrador indicado por `ADMIN_EMAIL` e gera uma senha aleatoria quando `ADMIN_PASSWORD` nao for informada. Guarde a senha exibida no terminal.
 
+Em uma instalacao existente, execute novamente `python init_db.py` depois de atualizar o codigo. O comando cria as tabelas da agenda sem apagar os dados atuais e garante os laboratorios `Lab 01` a `Lab 05`.
+
 6. Inicie o servidor:
 
 ```powershell
@@ -77,6 +79,26 @@ Evite `ngrok http 5000` neste ambiente, pois `localhost` pode ser resolvido como
 - `tecnico`: chamados, maquinas, movimentacoes, manutencoes e leitura do estoque.
 - `almoxarife`: leitura e movimentacao do estoque.
 - `usuario`: abertura e acompanhamento dos proprios chamados.
+
+Todos os perfis podem consultar o mapa diario, reservar um dos cinco laboratorios por manha, tarde ou noite e administrar as proprias reservas. Administradores e tecnicos podem administrar todas as reservas, cadastrar laboratorios e publicar ou excluir recados.
+
+## Importar o mapa de agendamentos do Excel
+
+O importador reconhece as abas mensais com as colunas `Data`, `Turno` e `Lab 01` a `Lab 05`. Ele usa as datas reais armazenadas nas células, associa Manhã a 08:00–12:00, Tarde a 13:00–17:00 e Noite a 18:00–22:00, e ignora automaticamente reservas que conflitem com dados já cadastrados.
+
+Primeiro, faça uma simulação sem alterar o banco:
+
+```powershell
+python -m flask --app app.py importar-agenda-excel "C:\caminho\Mapa de Agendamento_2025.xlsx"
+```
+
+Depois de conferir os totais, grave os dados:
+
+```powershell
+python -m flask --app app.py importar-agenda-excel "C:\caminho\Mapa de Agendamento_2025.xlsx" --confirmar
+```
+
+Por padrão, o primeiro administrador ou técnico ativo fica como responsável pelas reservas importadas. Para escolher uma conta, acrescente `--usuario email@exemplo.com`. A carga pode ser executada novamente: registros já existentes são tratados como conflitos e não são duplicados.
 
 Chamados, estoque, maquinas e conferencias sao filtrados conforme o perfil. Operacoes de escrita exigem protecao CSRF e validacao no servidor.
 

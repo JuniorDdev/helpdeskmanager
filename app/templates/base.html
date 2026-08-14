@@ -31,6 +31,7 @@
         <nav class="sidebar-nav" aria-label="Navegação principal">
           <a class="sidebar-link" href="{{ url_for('dashboard.index') }}"><span class="nav-icon">⌂</span><span>Dashboard</span></a>
           <a class="sidebar-link" href="{{ url_for('chamados.listar') }}"><span class="nav-icon">◈</span><span>Chamados</span></a>
+          <a class="sidebar-link" href="{{ url_for('agenda.index') }}"><span class="nav-icon">▦</span><span>Agenda</span></a>
           {% if current_user.perfil in ['admin', 'tecnico'] %}
           <div class="nav-label mt-3">Ativos e suporte</div>
           <a class="sidebar-link" href="{{ url_for('maquinas.listar') }}"><span class="nav-icon">▣</span><span>Máquinas</span></a>

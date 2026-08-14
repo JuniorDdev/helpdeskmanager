@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Editar reserva | Helpdesk Manager{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div>
+    <span class="page-eyebrow">Agenda de laboratórios</span>
+    <h1>Editar reserva</h1>
+    <p>Atualize o laboratório, a data, o turno ou as informações da atividade.</p>
+  </div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('agenda.index', data=booking.inicio.date().isoformat()) }}">Voltar à agenda</a>
+</section>
+
+<div class="form-card agenda-form-card">
+  <form method="post" class="row g-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-12">
+      <label class="form-label" for="reservaTitulo">Título da atividade</label>
+      <input id="reservaTitulo" name="titulo" class="form-control" maxlength="150" value="{{ booking.titulo }}" required>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="reservaData">Data</label>
+      <input id="reservaData" name="data_reserva" type="date" class="form-control" value="{{ booking.inicio.date().isoformat() }}" required>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="reservaTurno">Turno</label>
+      <select id="reservaTurno" name="turno" class="form-select" required>
+        {% for codigo, turno in turnos.items() %}
+        <option value="{{ codigo }}" {% if codigo == booking.turno_codigo %}selected{% endif %}>{{ turno.label }} · {{ turno.inicio.strftime('%H:%M') }}–{{ turno.fim.strftime('%H:%M') }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="reservaLaboratorio">Laboratório</label>
+      <select id="reservaLaboratorio" name="laboratorio_id" class="form-select" required>
+        {% for laboratorio in laboratorios %}
+        <option value="{{ laboratorio.id }}" {% if laboratorio.id == booking.laboratorio_id %}selected{% endif %}>{{ laboratorio.nome }}{% if not laboratorio.ativo %} (inativo){% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-12">
+      <label class="form-label" for="reservaFinalidade">Finalidade ou observações</label>
+      <textarea id="reservaFinalidade" name="finalidade" class="form-control" rows="4">{{ booking.finalidade or '' }}</textarea>
+    </div>
+    <div class="col-12 d-flex gap-2">
+      <button class="btn btn-primary" type="submit">Salvar alterações</button>
+      <a class="btn btn-light" href="{{ url_for('agenda.index', data=booking.inicio.date().isoformat()) }}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

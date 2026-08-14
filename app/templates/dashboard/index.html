@@ -23,5 +23,49 @@
   <div class="col-lg-4"><div class="chart-card"><div class="chart-card-header"><strong>Chamados por categoria</strong><span>Distribuição</span></div><canvas id="graficoCategoria"></canvas></div></div>
   <div class="col-lg-4"><div class="chart-card"><div class="chart-card-header"><strong>Máquinas por status</strong><span>Patrimônio</span></div><canvas id="graficoMaquinas"></canvas></div></div>
 </section>
+
+<section class="row g-3 mt-1 dashboard-day">
+  <div class="col-lg-7">
+    <div class="agenda-panel h-100">
+      <div class="agenda-panel-header">
+        <div><span class="page-eyebrow">Hoje</span><h2>Agenda de laboratórios</h2></div>
+        <a class="panel-link" href="{{ url_for('agenda.index') }}">Ver agenda completa →</a>
+      </div>
+      {% if agenda_hoje %}
+      <div class="dashboard-schedule">
+        {% for item in agenda_hoje %}
+        <a href="{{ url_for('agenda.index', data=item.inicio.date().isoformat()) }}">
+          <time>{{ item.turno_label }}</time>
+          <span><strong>{{ item.titulo }}</strong><small>{{ item.laboratorio.nome }} · {{ item.usuario.nome }}</small></span>
+          <span class="lab-pill">{{ item.inicio.strftime('%H:%M') }}–{{ item.fim.strftime('%H:%M') }}</span>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="agenda-empty compact"><span>✓</span><strong>Laboratórios livres hoje</strong><p>Ainda não há reservas para o dia.</p></div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="agenda-panel h-100">
+      <div class="agenda-panel-header">
+        <div><span class="page-eyebrow">Mural</span><h2>Recados do dia</h2></div>
+      </div>
+      {% if recados_hoje %}
+      <div class="dashboard-notices">
+        {% for recado in recados_hoje %}
+        <article class="priority-{{ recado.prioridade }}">
+          <span>{{ recado.prioridade|capitalize }}</span>
+          <strong>{{ recado.titulo }}</strong>
+          <p>{{ recado.mensagem }}</p>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="agenda-empty compact"><span>☼</span><strong>Nenhum recado ativo</strong><p>Os avisos do dia aparecerão aqui.</p></div>
+      {% endif %}
+    </div>
+  </div>
+</section>
 {% endblock %}
 {% block scripts %}<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>{% endblock %}

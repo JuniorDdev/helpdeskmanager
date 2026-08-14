@@ -1,8 +1,10 @@
+from datetime import date, datetime, time, timedelta
+
 from flask import Blueprint, jsonify, render_template
 from flask_login import current_user, login_required
-from sqlalchemy import func
+from sqlalchemy import case, func
 
-from app.models import Chamado, Estoque, Manutencao, Maquina
+from app.models import AgendamentoLaboratorio, Chamado, Estoque, Manutencao, Maquina, Recado
 from app.utils.authz import SUPPORT_ROLES
 
 
@@ -37,6 +39,32 @@ def index():
     maquinas = maquinas_query.count()
     estoque_baixo = estoque_query.filter(Estoque.quantidade <= Estoque.estoque_minimo).count()
     manutencoes = manutencoes_query.count()
+    hoje = date.today()
+    inicio_dia = datetime.combine(hoje, time.min)
+    fim_dia = inicio_dia + timedelta(days=1)
+    agenda_hoje = (
+        AgendamentoLaboratorio.query.filter(
+            AgendamentoLaboratorio.status == "agendado",
+            AgendamentoLaboratorio.inicio < fim_dia,
+            AgendamentoLaboratorio.fim > inicio_dia,
+        )
+        .order_by(AgendamentoLaboratorio.inicio)
+        .limit(5)
+        .all()
+    )
+    recados_hoje = (
+        Recado.query.filter(Recado.data_inicio <= hoje, Recado.data_fim >= hoje)
+        .order_by(
+            case(
+                (Recado.prioridade == "urgente", 0),
+                (Recado.prioridade == "importante", 1),
+                else_=2,
+            ),
+            Recado.criado_em.desc(),
+        )
+        .limit(3)
+        .all()
+    )
     return render_template(
         "dashboard/index.html",
         total_chamados=total_chamados,
@@ -44,6 +72,8 @@ def index():
         maquinas=maquinas,
         estoque_baixo=estoque_baixo,
         manutencoes=manutencoes,
+        agenda_hoje=agenda_hoje,
+        recados_hoje=recados_hoje,
     )
 
 
