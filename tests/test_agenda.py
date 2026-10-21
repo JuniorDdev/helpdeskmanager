@@ -175,6 +175,25 @@ class AgendaRoutesTestCase(unittest.TestCase):
         with self.app.app_context():
             self.assertEqual(AgendamentoLaboratorio.query.count(), 0)
 
+    def test_nao_permite_agendamento_no_turno_noturno_de_sabado(self):
+        self.login(self.usuario_id)
+        response = self.client.post(
+            "/agendamentos/novo",
+            data={
+                "titulo": "Aula no sábado à noite",
+                "professor_nome": "Usuário Teste",
+                "professor_matricula": "0-000000",
+                "quantidade_alunos": "10",
+                "laboratorio_id": self.laboratorio_id,
+                "data_reserva": "2030-03-16",
+                "turno": "noite",
+            },
+            follow_redirects=True,
+        )
+        self.assertIn("Não é possível agendar laboratórios no turno da noite aos sábados.".encode(), response.data)
+        with self.app.app_context():
+            self.assertEqual(AgendamentoLaboratorio.query.count(), 0)
+
     def test_usuario_altera_a_propria_senha_e_solicita_recuperacao(self):
         with self.app.app_context():
             usuario = db.session.get(Usuario, self.usuario_id)

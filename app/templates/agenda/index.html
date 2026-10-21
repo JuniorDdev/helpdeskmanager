@@ -15,6 +15,7 @@
 </section>
 
 {% if domingo %}<div class="alert alert-warning">Os laboratórios não recebem agendamentos aos domingos. Selecione outra data.</div>{% endif %}
+{% if sabado %}<div class="alert alert-info">Aos sábados, os laboratórios não recebem agendamentos no turno da noite.</div>{% endif %}
 
 <section class="agenda-datebar" aria-label="Seleção da data">
   <a class="date-nav" href="{{ url_for('agenda.index', data=data_anterior.isoformat()) }}" aria-label="Dia anterior">‹</a>
@@ -94,8 +95,8 @@
                   {% endif %}
                 </div>
                 {% endfor %}
-              {% elif domingo %}
-              <span class="slot-reserve-link disabled">Indisponível aos domingos</span>
+              {% elif domingo or (sabado and turno.codigo == 'noite') %}
+              <span class="slot-reserve-link disabled">{{ 'Indisponível aos domingos' if domingo else 'Indisponível aos sábados à noite' }}</span>
               {% else %}
               <a class="slot-reserve-link" href="{{ url_for('agendamento_laboratorios') }}">+ Solicitar</a>
               {% endif %}
@@ -146,7 +147,7 @@
           <label class="form-label" for="reservaTurno">Turno</label>
           <select id="reservaTurno" name="turno" class="form-select" required>
             {% for codigo, turno in turnos.items() %}
-            <option value="{{ codigo }}" {% if codigo == preselected_turno %}selected{% endif %}>{{ turno.label }} · {{ turno.inicio.strftime('%H:%M') }}–{{ turno.fim.strftime('%H:%M') }}</option>
+            <option value="{{ codigo }}" {% if sabado and codigo == 'noite' %}disabled{% endif %} {% if codigo == preselected_turno %}selected{% endif %}>{{ turno.label }} · {{ turno.inicio.strftime('%H:%M') }}–{{ turno.fim.strftime('%H:%M') }}{% if sabado and codigo == 'noite' %} (indisponível aos sábados){% endif %}</option>
             {% endfor %}
           </select>
         </div>

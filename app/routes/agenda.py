@@ -167,6 +167,8 @@ def apply_booking_fields(booking):
     if data_reserva.weekday() == 6:
         raise ValidationError("Não é possível agendar laboratórios aos domingos.")
     turno_codigo = choice(request.form, "turno", set(TURNOS), "Turno")
+    if data_reserva.weekday() == 5 and turno_codigo == "noite":
+        raise ValidationError("Não é possível agendar laboratórios no turno da noite aos sábados.")
     turno = TURNOS[turno_codigo]
     inicio = datetime.combine(data_reserva, turno["inicio"])
     fim = datetime.combine(data_reserva, turno["fim"])
@@ -257,6 +259,8 @@ def index():
     preselected_turno = request.args.get("turno")
     if preselected_turno not in TURNOS:
         preselected_turno = "manha"
+    if data_selecionada.weekday() == 5 and preselected_turno == "noite":
+        preselected_turno = "manha"
     todos_laboratorios = []
     if has_role(*SUPPORT_ROLES):
         todos_laboratorios = Laboratorio.query.order_by(Laboratorio.nome).all()
@@ -295,6 +299,7 @@ def index():
         proxima_data=data_selecionada + timedelta(days=1),
         hoje=date.today(),
         domingo=data_selecionada.weekday() == 6,
+        sabado=data_selecionada.weekday() == 5,
         suporte=has_role(*SUPPORT_ROLES),
         status_labels=STATUS_LABELS,
         notificacoes=notificacoes,
@@ -465,6 +470,8 @@ def solicitar_professor():
     preselected_turno = request.args.get("turno")
     if preselected_turno not in TURNOS:
         preselected_turno = "manha"
+    if data_selecionada.weekday() == 5 and preselected_turno == "noite":
+        preselected_turno = "manha"
     agendamentos = (
         AgendamentoLaboratorio.query.options(joinedload(AgendamentoLaboratorio.laboratorio))
         .filter_by(usuario_id=current_user.id)
@@ -485,6 +492,7 @@ def solicitar_professor():
         preselected_lab_id=preselected_lab_id,
         preselected_turno=preselected_turno,
         domingo=data_selecionada.weekday() == 6,
+        sabado=data_selecionada.weekday() == 5,
     )
 
 
