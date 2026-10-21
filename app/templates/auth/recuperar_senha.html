@@ -1,0 +1,5 @@
+{% extends 'base.html' %}
+{% block title %}Recuperar senha | Helpdesk Manager{% endblock %}
+{% block content %}
+<div class="login-screen justify-content-center"><div class="login-card"><div class="login-card-top"><div class="brand-mark mb-3">HD</div><h1 class="h3 mb-0">Recuperar senha</h1><p>Informe seu e-mail ou matrícula para solicitar uma nova senha.</p></div><div class="login-card-body"><form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label class="form-label" for="identificador">E-mail ou matrícula</label><input id="identificador" name="identificador" class="form-control mb-4" placeholder="nome@instituicao.edu ou 0-000000" required><button class="btn btn-primary w-100" type="submit">Solicitar recuperação</button></form><p class="text-center mt-3 mb-0"><a href="{{ url_for('auth.login') }}">Voltar para o acesso</a></p></div></div></div>
+{% endblock %}

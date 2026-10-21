@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}Minha senha | Helpdesk Manager{% endblock %}
+{% block content %}
+<section class="page-heading"><div><span class="page-eyebrow">Minha conta</span><h1>Alterar minha senha</h1><p>Confirme sua senha atual e informe uma nova senha.</p></div></section>
+<section class="form-card col-lg-6">
+  <form method="post" class="row g-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-12"><label class="form-label" for="senhaAtual">Senha atual</label><input id="senhaAtual" name="senha_atual" type="password" class="form-control" autocomplete="current-password" required></div>
+    <div class="col-12"><label class="form-label" for="novaSenha">Nova senha</label><input id="novaSenha" name="nova_senha" type="password" class="form-control" minlength="6" autocomplete="new-password" required><div class="form-text">Mínimo de 6 caracteres.</div></div>
+    <div class="col-12"><button class="btn btn-primary" type="submit">Atualizar minha senha</button></div>
+  </form>
+</section>
+{% endblock %}

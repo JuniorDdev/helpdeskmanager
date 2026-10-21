@@ -57,6 +57,7 @@
           {% endif %}
           {% endif %}
         </nav>
+        <a class="sidebar-link sidebar-account-link" href="{{ url_for('auth.minha_senha') }}"><span class="nav-icon">◌</span><span>Minha senha</span></a>
         <form method="post" action="{{ url_for('auth.logout') }}" class="logout-form">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="sidebar-link-button"><span class="nav-icon">↪</span><span>Sair</span></button>

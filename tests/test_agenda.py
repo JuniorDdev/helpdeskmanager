@@ -175,6 +175,47 @@ class AgendaRoutesTestCase(unittest.TestCase):
         with self.app.app_context():
             self.assertEqual(AgendamentoLaboratorio.query.count(), 0)
 
+    def test_usuario_altera_a_propria_senha_e_solicita_recuperacao(self):
+        with self.app.app_context():
+            usuario = db.session.get(Usuario, self.usuario_id)
+            usuario.set_senha("senha-atual")
+            db.session.commit()
+        self.login(self.usuario_id)
+        atualizacao = self.client.post(
+            "/minha-senha",
+            data={"senha_atual": "senha-atual", "nova_senha": "senha-nova"},
+        )
+        self.assertEqual(atualizacao.status_code, 302)
+        with self.app.app_context():
+            usuario = db.session.get(Usuario, self.usuario_id)
+            self.assertTrue(usuario.check_senha("senha-nova"))
+
+        with self.client.session_transaction() as session:
+            session.clear()
+        recuperacao = self.client.post(
+            "/recuperar-senha",
+            data={"identificador": "usuario@teste.local"},
+        )
+        self.assertEqual(recuperacao.status_code, 302)
+        with self.app.app_context():
+            notificacao = NotificacaoSistema.query.filter_by(tipo="recuperacao_senha").one()
+            self.assertEqual(notificacao.usuario_id, self.admin_id)
+
+    def test_professor_recupera_senha_com_dados_cadastrais(self):
+        response = self.client.post(
+            "/recuperar-senha-professor",
+            data={
+                "nome": "Professora Teste",
+                "email": "professora@teste.local",
+                "matricula": "0-000000",
+                "senha": "nova-senha-professor",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        with self.app.app_context():
+            professor = db.session.get(Usuario, self.professor_id)
+            self.assertTrue(professor.check_senha("nova-senha-professor"))
+
     def test_confirma_primeira_solicitacao_e_respeita_capacidade(self):
         with self.app.app_context():
             laboratorio = db.session.get(Laboratorio, self.laboratorio_id)

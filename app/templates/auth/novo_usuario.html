@@ -2,6 +2,7 @@
 {% block content %}
 <h2>Novo usuário</h2>
 <p><a href="{{ url_for('auth.redefinir_senha_professor') }}">Redefinir senha de professor</a></p>
+<p><a href="{{ url_for('auth.redefinir_senha_usuario') }}">Redefinir senha de usuário</a></p>
 <div class="form-card">
 <form method="post" class="row g-3">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

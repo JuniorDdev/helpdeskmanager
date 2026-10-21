@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db, limiter
 from app.models import Usuario
+from app.services.notifications import notify_support
 from app.utils.authz import roles_required
 from app.utils.validation import ValidationError, choice, optional_text, required_text
 
@@ -21,6 +22,10 @@ def professor_matricula(value):
     if not MATRICULA_PROFESSOR_PATTERN.fullmatch(matricula):
         raise ValidationError("A matrícula deve seguir o padrão 0-000000.")
     return matricula
+
+
+def normalized_name(value):
+    return re.sub(r"\s+", " ", (value or "").strip()).casefold()
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
@@ -122,6 +127,93 @@ def logout():
     return redirect(url_for("auth.login"))
 
 
+@auth_bp.route("/minha-senha", methods=["GET", "POST"])
+@login_required
+def minha_senha():
+    if request.method == "POST":
+        try:
+            senha_atual = request.form.get("senha_atual") or ""
+            nova_senha = required_text(request.form, "nova_senha", "Nova senha")
+            if not current_user.check_senha(senha_atual):
+                raise ValidationError("A senha atual está incorreta.")
+            if len(nova_senha) < 6:
+                raise ValidationError("A nova senha deve ter pelo menos 6 caracteres.")
+            current_user.set_senha(nova_senha)
+            db.session.commit()
+        except ValidationError as error:
+            db.session.rollback()
+            flash(str(error), "danger")
+        else:
+            flash("Sua senha foi atualizada com sucesso.", "success")
+            return redirect(url_for("auth.minha_senha"))
+    return render_template("auth/minha_senha.html")
+
+
+@auth_bp.route("/recuperar-senha", methods=["GET", "POST"])
+@limiter.limit("3 per hour", methods=["POST"])
+def recuperar_senha():
+    if current_user.is_authenticated:
+        return redirect(url_for("auth.minha_senha"))
+    if request.method == "POST":
+        identificador = (request.form.get("identificador") or "").strip()
+        usuario = None
+        if identificador:
+            usuario = Usuario.query.filter(
+                Usuario.ativo.is_(True),
+                or_(
+                    db.func.lower(Usuario.email) == identificador.lower(),
+                    Usuario.matricula == identificador,
+                ),
+            ).first()
+        if usuario:
+            notify_support(
+                "recuperacao_senha",
+                "Solicitação de recuperação de senha",
+                f"{usuario.nome} solicitou recuperação de senha ({usuario.email}).",
+                url_for("auth.redefinir_senha_usuario", busca=usuario.email),
+            )
+            db.session.commit()
+        flash(
+            "Se os dados informados estiverem cadastrados, a equipe receberá sua solicitação de recuperação.",
+            "success",
+        )
+        return redirect(url_for("auth.login"))
+    return render_template("auth/recuperar_senha.html")
+
+
+@auth_bp.route("/recuperar-senha-professor", methods=["GET", "POST"])
+@limiter.limit("3 per hour", methods=["POST"])
+def recuperar_senha_professor():
+    if current_user.is_authenticated:
+        return redirect(
+            url_for("auth.minha_senha")
+            if current_user.perfil == "professor"
+            else url_for("dashboard.index")
+        )
+    if request.method == "POST":
+        try:
+            nome = required_text(request.form, "nome", "Nome completo", 120)
+            email = required_text(request.form, "email", "E-mail", 120).lower()
+            matricula = professor_matricula(request.form.get("matricula"))
+            senha = required_text(request.form, "senha", "Nova senha")
+            if len(senha) < 6:
+                raise ValidationError("A nova senha deve ter pelo menos 6 caracteres.")
+            professor = Usuario.query.filter_by(
+                perfil="professor", ativo=True, email=email, matricula=matricula
+            ).first()
+            if not professor or normalized_name(professor.nome) != normalized_name(nome):
+                raise ValidationError("Os dados informados não conferem com um professor cadastrado.")
+            professor.set_senha(senha)
+            db.session.commit()
+        except ValidationError as error:
+            db.session.rollback()
+            flash(str(error), "danger")
+        else:
+            flash("Senha atualizada. Agora entre com sua matrícula e a nova senha.", "success")
+            return redirect(url_for("auth.login_professor"))
+    return render_template("auth/recuperar_senha_professor.html")
+
+
 @auth_bp.route("/usuarios/novo", methods=["GET", "POST"])
 @roles_required("admin")
 def novo_usuario():
@@ -159,6 +251,43 @@ def novo_usuario():
             return redirect(url_for("dashboard.index"))
 
     return render_template("auth/novo_usuario.html")
+
+
+@auth_bp.route("/usuarios/senha", methods=["GET", "POST"])
+@roles_required("admin")
+def redefinir_senha_usuario():
+    termo = (request.values.get("busca") or "").strip()
+    usuarios = []
+    if termo:
+        usuarios = (
+            Usuario.query.filter(
+                Usuario.ativo.is_(True),
+                or_(
+                    db.func.lower(Usuario.email) == termo.lower(),
+                    Usuario.matricula == termo,
+                ),
+            )
+            .order_by(Usuario.nome)
+            .all()
+        )
+    if request.method == "POST":
+        try:
+            usuario_id = request.form.get("usuario_id", type=int)
+            usuario = Usuario.query.filter_by(id=usuario_id, ativo=True).first()
+            if not usuario:
+                raise ValidationError("Usuário não encontrado.")
+            senha = required_text(request.form, "senha", "Nova senha")
+            if len(senha) < 6:
+                raise ValidationError("A nova senha deve ter pelo menos 6 caracteres.")
+            usuario.set_senha(senha)
+            db.session.commit()
+        except ValidationError as error:
+            db.session.rollback()
+            flash(str(error), "danger")
+        else:
+            flash(f"Senha de {usuario.nome} atualizada com sucesso.", "success")
+            return redirect(url_for("auth.redefinir_senha_usuario", busca=usuario.email))
+    return render_template("auth/redefinir_senha_usuario.html", busca=termo, usuarios=usuarios)
 
 
 @auth_bp.route("/professores/senha", methods=["GET", "POST"])
