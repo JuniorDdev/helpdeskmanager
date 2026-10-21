@@ -136,6 +136,45 @@ class AgendaRoutesTestCase(unittest.TestCase):
         self.assertIn("agendamentos_2030.pdf", pdf.headers["Content-Disposition"])
         self.assertTrue(pdf.data.startswith(b"%PDF"))
 
+    def test_admin_localiza_professor_e_redefine_senha(self):
+        self.login(self.admin_id)
+
+        busca = self.client.get("/professores/senha?busca=0-000000")
+        atualizacao = self.client.post(
+            "/professores/senha",
+            data={
+                "busca": "0-000000",
+                "professor_id": self.professor_id,
+                "senha": "senha-nova",
+            },
+        )
+
+        self.assertEqual(busca.status_code, 200)
+        self.assertIn(b"Professora Teste", busca.data)
+        self.assertEqual(atualizacao.status_code, 302)
+        with self.app.app_context():
+            professor = db.session.get(Usuario, self.professor_id)
+            self.assertTrue(professor.check_senha("senha-nova"))
+
+    def test_nao_permite_agendamento_no_domingo(self):
+        self.login(self.usuario_id)
+        response = self.client.post(
+            "/agendamentos/novo",
+            data={
+                "titulo": "Aula no domingo",
+                "professor_nome": "Usuário Teste",
+                "professor_matricula": "0-000000",
+                "quantidade_alunos": "10",
+                "laboratorio_id": self.laboratorio_id,
+                "data_reserva": "2030-03-17",
+                "turno": "manha",
+            },
+            follow_redirects=True,
+        )
+        self.assertIn("Não é possível agendar laboratórios aos domingos.".encode(), response.data)
+        with self.app.app_context():
+            self.assertEqual(AgendamentoLaboratorio.query.count(), 0)
+
     def test_confirma_primeira_solicitacao_e_respeita_capacidade(self):
         with self.app.app_context():
             laboratorio = db.session.get(Laboratorio, self.laboratorio_id)

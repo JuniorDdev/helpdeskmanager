@@ -2,6 +2,7 @@ import re
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db, limiter
@@ -158,3 +159,44 @@ def novo_usuario():
             return redirect(url_for("dashboard.index"))
 
     return render_template("auth/novo_usuario.html")
+
+
+@auth_bp.route("/professores/senha", methods=["GET", "POST"])
+@roles_required("admin")
+def redefinir_senha_professor():
+    termo = (request.values.get("busca") or "").strip()
+    professores = []
+    if termo:
+        professores = (
+            Usuario.query.filter(
+                Usuario.perfil == "professor",
+                or_(
+                    db.func.lower(Usuario.email) == termo.lower(),
+                    Usuario.matricula == termo,
+                ),
+            )
+            .order_by(Usuario.nome)
+            .all()
+        )
+
+    if request.method == "POST":
+        try:
+            professor_id = request.form.get("professor_id", type=int)
+            professor = Usuario.query.filter_by(id=professor_id, perfil="professor").first()
+            if not professor:
+                raise ValidationError("Professor não encontrado.")
+            senha = required_text(request.form, "senha", "Nova senha")
+            if len(senha) < 6:
+                raise ValidationError("A nova senha deve ter pelo menos 6 caracteres.")
+            professor.set_senha(senha)
+            db.session.commit()
+        except ValidationError as error:
+            db.session.rollback()
+            flash(str(error), "danger")
+        else:
+            flash(f"Senha de {professor.nome} atualizada com sucesso.", "success")
+            return redirect(url_for("auth.redefinir_senha_professor", busca=professor.matricula))
+
+    return render_template(
+        "auth/redefinir_senha_professor.html", busca=termo, professores=professores
+    )

@@ -164,6 +164,8 @@ def apply_booking_fields(booking):
         raise ValidationError("Laboratório inválido ou indisponível.")
 
     data_reserva = parse_date_value(request.form.get("data_reserva"), "Data da reserva")
+    if data_reserva.weekday() == 6:
+        raise ValidationError("Não é possível agendar laboratórios aos domingos.")
     turno_codigo = choice(request.form, "turno", set(TURNOS), "Turno")
     turno = TURNOS[turno_codigo]
     inicio = datetime.combine(data_reserva, turno["inicio"])
@@ -292,6 +294,7 @@ def index():
         data_anterior=data_selecionada - timedelta(days=1),
         proxima_data=data_selecionada + timedelta(days=1),
         hoje=date.today(),
+        domingo=data_selecionada.weekday() == 6,
         suporte=has_role(*SUPPORT_ROLES),
         status_labels=STATUS_LABELS,
         notificacoes=notificacoes,
@@ -481,6 +484,7 @@ def solicitar_professor():
         mapa_turnos=mapa_turnos,
         preselected_lab_id=preselected_lab_id,
         preselected_turno=preselected_turno,
+        domingo=data_selecionada.weekday() == 6,
     )
 
 

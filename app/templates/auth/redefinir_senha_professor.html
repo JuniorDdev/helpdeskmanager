@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Redefinir senha de professor | Helpdesk Manager{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div>
+    <span class="page-eyebrow">Administração</span>
+    <h1>Senha de professor</h1>
+    <p>Localize pelo e-mail ou pela matrícula e defina uma nova senha.</p>
+  </div>
+  <div class="page-actions"><a class="btn btn-outline-secondary" href="{{ url_for('auth.novo_usuario') }}">Voltar para usuários</a></div>
+</section>
+
+<section class="form-card col-lg-8">
+  <form method="get" class="row g-2">
+    <div class="col-md-9">
+      <label class="form-label" for="busca">E-mail ou matrícula</label>
+      <input id="busca" name="busca" class="form-control" value="{{ busca }}" placeholder="nome@instituicao.edu ou 0-000000" required>
+    </div>
+    <div class="col-md-3 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Localizar</button></div>
+  </form>
+</section>
+
+{% if busca %}
+<section class="agenda-panel col-lg-8 mt-4">
+  <h2 class="h4 mb-3">Resultado da busca</h2>
+  {% for professor in professores %}
+  <article class="border rounded p-3 mb-3">
+    <strong>{{ professor.nome }}</strong>
+    <div class="text-muted mb-3">{{ professor.email }} · Matrícula {{ professor.matricula }}</div>
+    <form method="post" class="row g-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="busca" value="{{ busca }}">
+      <input type="hidden" name="professor_id" value="{{ professor.id }}">
+      <div class="col-md-8">
+        <label class="form-label" for="senha-{{ professor.id }}">Nova senha</label>
+        <input id="senha-{{ professor.id }}" name="senha" type="password" class="form-control" minlength="6" autocomplete="new-password" required>
+        <div class="form-text">Mínimo de 6 caracteres.</div>
+      </div>
+      <div class="col-md-4 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Atualizar senha</button></div>
+    </form>
+  </article>
+  {% else %}
+  <p class="mb-0 text-muted">Nenhum professor encontrado com esse e-mail ou matrícula.</p>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

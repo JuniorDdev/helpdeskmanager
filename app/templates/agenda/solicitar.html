@@ -9,6 +9,7 @@
   </div>
   {% if current_user.perfil != 'professor' %}<a class="btn btn-outline-secondary" href="{{ url_for('agenda.index') }}">Ver painel de disponibilidade</a>{% endif %}
 </section>
+{% if domingo %}<div class="alert alert-warning">Os laboratórios não recebem agendamentos aos domingos. Escolha outra data para solicitar.</div>{% endif %}
 {% if current_user.perfil == 'professor' %}
 <section class="agenda-panel professor-availability mb-4">
   <div class="agenda-panel-header">
@@ -30,6 +31,8 @@
           <div class="lab-slot-head"><strong>{{ slot.laboratorio.nome }}</strong><span>{{ 'Agendado' if slot.ocupado else 'Disponível' }}</span></div>
           {% if slot.ocupado %}
           <div class="slot-booking professor-booking"><small>Horário já reservado</small><small>Sem edição disponível</small></div>
+          {% elif domingo %}
+          <span class="slot-reserve-link disabled">Indisponível aos domingos</span>
           {% else %}
           <a class="slot-reserve-link" href="{{ url_for('agendamento_laboratorios', data=data_selecionada.isoformat(), lab=slot.laboratorio.id, turno=turno.codigo) }}#formulario-agendamento">Selecionar este horário</a>
           {% endif %}
@@ -53,7 +56,7 @@
     <div class="col-md-4"><label class="form-label" for="laboratorio">Laboratório</label><select id="laboratorio" name="laboratorio_id" class="form-select" required>{% for laboratorio in laboratorios %}<option value="{{ laboratorio.id }}" {% if laboratorio.id == preselected_lab_id %}selected{% endif %}>{{ laboratorio.nome }}{% if laboratorio.capacidade %} ({{ laboratorio.capacidade }} computadores){% endif %}</option>{% endfor %}</select></div>
     <div class="col-md-4"><label class="form-label" for="alunos">Quantidade de alunos</label><input id="alunos" name="quantidade_alunos" type="number" min="1" class="form-control" required></div>
     <div class="col-12"><label class="form-label" for="observacoes">Observações</label><textarea id="observacoes" name="finalidade" class="form-control" rows="3" placeholder="Equipamentos necessários ou outras informações."></textarea></div>
-    <div class="col-12"><button class="btn btn-primary" type="submit">Enviar solicitação</button></div>
+    <div class="col-12"><button class="btn btn-primary" type="submit" {% if domingo %}disabled{% endif %}>Enviar solicitação</button></div>
   </form>
 </div>
 {% if current_user.perfil == 'professor' %}
