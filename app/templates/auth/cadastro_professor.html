@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Cadastro de Professor · Helpdesk Manager{% endblock %}
+{% block content %}
+<div class="login-screen justify-content-center">
+  <div class="login-card login-card-wide">
+    <div class="login-card-top">
+      <div class="login-role-icon mb-3">▦</div>
+      <h1 class="h3 mb-0">Cadastro de Professor</h1>
+      <p>Crie seu acesso para solicitar laboratórios e acompanhar suas confirmações.</p>
+    </div>
+    <div class="login-card-body">
+      <form method="post" class="row g-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="col-12"><label class="form-label" for="nome">Nome completo</label><input class="form-control" id="nome" name="nome" value="{{ request.form.get('nome', '') }}" maxlength="120" autocomplete="name" required></div>
+        <div class="col-md-7"><label class="form-label" for="email">E-mail institucional</label><input class="form-control" id="email" type="email" name="email" value="{{ request.form.get('email', '') }}" maxlength="120" autocomplete="email" required></div>
+        <div class="col-md-5"><label class="form-label" for="matricula">Matrícula</label><input class="form-control" id="matricula" name="matricula" value="{{ request.form.get('matricula', '') }}" pattern="\d-\d{6}" placeholder="0-000000" autocomplete="username" required></div>
+        <div class="col-12"><label class="form-label" for="telefone">Telefone <span class="text-muted">(opcional)</span></label><input class="form-control" id="telefone" name="telefone" value="{{ request.form.get('telefone', '') }}" maxlength="30" autocomplete="tel"></div>
+        <div class="col-md-6"><label class="form-label" for="senha">Crie uma senha</label><input class="form-control" id="senha" type="password" name="senha" minlength="10" autocomplete="new-password" required><div class="form-text">Mínimo de 10 caracteres.</div></div>
+        <div class="col-md-6"><label class="form-label" for="confirmacao_senha">Confirme a senha</label><input class="form-control" id="confirmacao_senha" type="password" name="confirmacao_senha" minlength="10" autocomplete="new-password" required></div>
+        <div class="col-12"><button class="btn btn-primary w-100" type="submit">Criar cadastro e solicitar laboratório</button></div>
+      </form>
+      <p class="text-center mt-3 mb-0">Já possui cadastro? <a href="{{ url_for('auth.login_professor') }}">Entrar com matrícula</a></p>
+    </div>
+  </div>
+</div>
+{% endblock %}

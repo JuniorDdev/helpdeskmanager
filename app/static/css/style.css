@@ -494,6 +494,16 @@ main > h2,
 .login-card-top { background: linear-gradient(135deg, var(--navy), #2b4276); color: #fff; padding: 28px; }
 .login-card-top p { color: #bac8e7; font-size: .8rem; margin: 8px 0 0; }
 .login-card-body { padding: 28px; }
+.login-card-wide { max-width: 610px; }
+.login-role-icon { align-items: center; background: linear-gradient(135deg, #5a7dff, #32c9b5); border-radius: 14px; color: #fff; display: inline-flex; font-size: 1.5rem; height: 50px; justify-content: center; width: 50px; }
+.teacher-access-card { align-items: center; background: #f1f5ff; border: 1px solid #d8e2ff; border-radius: 14px; color: var(--ink); display: flex; gap: 12px; margin-top: 20px; padding: 14px; text-decoration: none; transition: .2s ease; }
+.teacher-access-card:hover { background: #e9f0ff; border-color: #9eb7ff; color: var(--primary); transform: translateY(-1px); }
+.teacher-access-card span:nth-child(2) { display: grid; flex: 1; gap: 2px; }
+.teacher-access-card small { color: var(--muted); font-size: .72rem; }
+.teacher-access-icon { align-items: center; background: #dfe8ff; border-radius: 10px; color: var(--primary); display: inline-flex; font-size: 1.1rem; height: 36px; justify-content: center; width: 36px; }
+.teacher-access-card b { font-size: 1.25rem; font-weight: 500; }
+.login-divider { align-items: center; color: var(--muted); display: flex; font-size: .78rem; gap: 10px; margin: 20px 0; }
+.login-divider::before, .login-divider::after { background: var(--line); content: ""; height: 1px; flex: 1; }
 
 @media (max-width: 991.98px) {
   .app-sidebar {

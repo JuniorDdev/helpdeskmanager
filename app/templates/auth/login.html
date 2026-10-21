@@ -17,7 +17,11 @@
         <input class="form-control mb-4" id="senha" type="password" name="senha" autocomplete="current-password" required>
         <button class="btn btn-primary w-100" type="submit">Entrar no sistema</button>
       </form>
-      <p class="text-center mt-3 mb-0"><a href="{{ url_for('auth.login_professor') }}">Sou professor: entrar com matrícula</a></p>
+      <a class="teacher-access-card" href="{{ url_for('auth.login_professor') }}">
+        <span class="teacher-access-icon">▦</span>
+        <span><strong>Sou professor</strong><small>Entre com matrícula e senha para agendar um laboratório</small></span>
+        <b aria-hidden="true">→</b>
+      </a>
     </div>
   </div>
 </div>

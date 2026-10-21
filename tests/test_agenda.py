@@ -53,7 +53,7 @@ class AgendaRoutesTestCase(unittest.TestCase):
                 email="professora@teste.local",
                 senha_hash="inutilizado",
                 perfil="professor",
-                matricula="0-0000",
+                matricula="0-000000",
                 ativo=True,
             )
             laboratorios = [Laboratorio(nome=f"Lab {numero:02d}", ativo=True) for numero in range(1, 6)]
@@ -213,7 +213,7 @@ class AgendaRoutesTestCase(unittest.TestCase):
         response = self.client.get("/agendamento-laboratorios")
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Professora Teste", response.data)
-        self.assertIn(b"0-0000", response.data)
+        self.assertIn(b"0-000000", response.data)
         self.assertEqual(self.client.get("/").status_code, 403)
         self.assertEqual(self.client.get("/chamados/").status_code, 403)
 
@@ -225,10 +225,28 @@ class AgendaRoutesTestCase(unittest.TestCase):
 
         response = self.client.post(
             "/login-professor",
-            data={"matricula": "0-0000", "senha": "senha-professor-123"},
+            data={"matricula": "0-000000", "senha": "senha-professor-123"},
         )
         self.assertEqual(response.status_code, 302)
         self.assertTrue(response.location.endswith("/agendamento-laboratorios"))
+
+    def test_professor_pode_criar_proprio_cadastro(self):
+        response = self.client.post(
+            "/cadastro-professor",
+            data={
+                "nome": "Novo Professor",
+                "email": "novo.professor@teste.local",
+                "matricula": "1-234567",
+                "senha": "senha-professor-123",
+                "confirmacao_senha": "senha-professor-123",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.location.endswith("/agendamento-laboratorios"))
+        with self.app.app_context():
+            professor = Usuario.query.filter_by(matricula="1-234567").first()
+            self.assertIsNotNone(professor)
+            self.assertEqual(professor.perfil, "professor")
 
 
 if __name__ == "__main__":

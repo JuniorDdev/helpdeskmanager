@@ -12,13 +12,13 @@ from app.utils.validation import ValidationError, choice, optional_text, require
 
 auth_bp = Blueprint("auth", __name__)
 USER_PROFILES = {"admin", "tecnico", "usuario", "almoxarife", "professor"}
-MATRICULA_PROFESSOR_PATTERN = re.compile(r"^\d-\d{4}$")
+MATRICULA_PROFESSOR_PATTERN = re.compile(r"^\d-\d{6}$")
 
 
 def professor_matricula(value):
     matricula = (value or "").strip()
     if not MATRICULA_PROFESSOR_PATTERN.fullmatch(matricula):
-        raise ValidationError("A matrícula deve seguir o padrão 0-0000.")
+        raise ValidationError("A matrícula deve seguir o padrão 0-000000.")
     return matricula
 
 
@@ -65,6 +65,52 @@ def login_professor():
             return redirect(url_for("agendamento_laboratorios"))
         flash("Matrícula ou senha inválidas.", "danger")
     return render_template("auth/login_professor.html")
+
+
+@auth_bp.route("/cadastro-professor", methods=["GET", "POST"])
+@limiter.limit("5 per minute; 20 per hour", methods=["POST"])
+def cadastro_professor():
+    if current_user.is_authenticated:
+        return redirect(
+            url_for("agendamento_laboratorios")
+            if current_user.perfil == "professor"
+            else url_for("dashboard.index")
+        )
+
+    if request.method == "POST":
+        try:
+            nome = required_text(request.form, "nome", "Nome", 120)
+            email = required_text(request.form, "email", "E-mail", 120).lower()
+            matricula = professor_matricula(request.form.get("matricula"))
+            senha = required_text(request.form, "senha", "Senha")
+            confirmacao_senha = request.form.get("confirmacao_senha") or ""
+            if len(senha) < 10:
+                raise ValidationError("A senha deve ter pelo menos 10 caracteres.")
+            if senha != confirmacao_senha:
+                raise ValidationError("A confirmação de senha não confere.")
+
+            usuario = Usuario(
+                nome=nome,
+                email=email,
+                matricula=matricula,
+                perfil="professor",
+                telefone=optional_text(request.form, "telefone", 30),
+                ativo=True,
+            )
+            usuario.set_senha(senha)
+            db.session.add(usuario)
+            db.session.commit()
+        except ValidationError as error:
+            flash(str(error), "danger")
+        except IntegrityError:
+            db.session.rollback()
+            flash("Já existe um Professor cadastrado com este e-mail ou matrícula.", "danger")
+        else:
+            login_user(usuario)
+            flash("Cadastro concluído. Agora você já pode solicitar um laboratório.", "success")
+            return redirect(url_for("agendamento_laboratorios"))
+
+    return render_template("auth/cadastro_professor.html")
 
 
 @auth_bp.route("/logout", methods=["POST"])
