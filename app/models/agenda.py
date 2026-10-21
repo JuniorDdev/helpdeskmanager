@@ -27,20 +27,30 @@ class AgendamentoLaboratorio(db.Model):
         db.Integer, db.ForeignKey("laboratorios.id"), nullable=False, index=True
     )
     usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False, index=True)
+    professor_nome = db.Column(db.String(120), nullable=False, default="")
+    professor_matricula = db.Column(db.String(60), nullable=False, default="")
+    quantidade_alunos = db.Column(db.Integer, nullable=False, default=0)
     titulo = db.Column(db.String(150), nullable=False)
     finalidade = db.Column(db.Text)
     inicio = db.Column(db.DateTime, nullable=False, index=True)
     fim = db.Column(db.DateTime, nullable=False, index=True)
     status = db.Column(
-        db.Enum("agendado", "cancelado"), default="agendado", nullable=False, index=True
+        db.Enum("solicitado", "agendado", "recusado", "cancelado", "excluido"),
+        default="solicitado",
+        nullable=False,
+        index=True,
     )
+    motivo_decisao = db.Column(db.Text)
+    confirmado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
+    confirmado_em = db.Column(db.DateTime)
     criado_em = db.Column(db.DateTime, server_default=db.func.now(), nullable=False)
     atualizado_em = db.Column(
         db.DateTime, server_default=db.func.now(), onupdate=db.func.now(), nullable=False
     )
 
     laboratorio = db.relationship("Laboratorio", backref="agendamentos")
-    usuario = db.relationship("Usuario", backref="agendamentos_laboratorio")
+    usuario = db.relationship("Usuario", foreign_keys=[usuario_id], backref="agendamentos_laboratorio")
+    confirmado_por = db.relationship("Usuario", foreign_keys=[confirmado_por_id])
 
     @property
     def turno_codigo(self):
@@ -55,6 +65,43 @@ class AgendamentoLaboratorio(db.Model):
     @property
     def turno_label(self):
         return {"manha": "Manhã", "tarde": "Tarde", "noite": "Noite"}[self.turno_codigo]
+
+    @property
+    def protocolo(self):
+        return f"AGD-{self.id:05d}" if self.id else "AGD-pendente"
+
+
+class HistoricoAgendamentoLaboratorio(db.Model):
+    __tablename__ = "historico_agendamentos_laboratorio"
+
+    id = db.Column(db.Integer, primary_key=True)
+    agendamento_id = db.Column(
+        db.Integer, db.ForeignKey("agendamentos_laboratorio.id"), nullable=False, index=True
+    )
+    usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False)
+    acao = db.Column(db.String(80), nullable=False)
+    descricao = db.Column(db.Text)
+    criado_em = db.Column(db.DateTime, server_default=db.func.now(), nullable=False, index=True)
+
+    agendamento = db.relationship("AgendamentoLaboratorio", backref="historicos")
+    usuario = db.relationship("Usuario")
+
+
+class NotificacaoAgenda(db.Model):
+    __tablename__ = "notificacoes_agenda"
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False, index=True)
+    agendamento_id = db.Column(
+        db.Integer, db.ForeignKey("agendamentos_laboratorio.id"), nullable=False, index=True
+    )
+    tipo = db.Column(db.String(40), nullable=False, default="solicitacao")
+    mensagem = db.Column(db.String(255), nullable=False)
+    lida_em = db.Column(db.DateTime)
+    criado_em = db.Column(db.DateTime, server_default=db.func.now(), nullable=False, index=True)
+
+    usuario = db.relationship("Usuario")
+    agendamento = db.relationship("AgendamentoLaboratorio", backref="notificacoes")
 
 
 class Recado(db.Model):

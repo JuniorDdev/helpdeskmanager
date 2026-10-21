@@ -361,11 +361,13 @@ main > h2,
 .lab-slot:last-child { border-right: 0; }
 .lab-slot.is-free { background: #fbfefd; }
 .lab-slot.is-occupied { background: #fffafb; }
+.lab-slot.is-pending { background: #fffdf4; }
 .lab-slot-head { align-items: center; display: flex; gap: 7px; justify-content: space-between; }
 .lab-slot-head strong { font-size: .69rem; }
 .lab-slot-head span { border-radius: 999px; font-size: .54rem; font-weight: 850; padding: 4px 6px; text-transform: uppercase; }
 .lab-slot.is-free .lab-slot-head span { background: #e4f7f1; color: var(--success); }
 .lab-slot.is-occupied .lab-slot-head span { background: #fdebed; color: var(--danger); }
+.lab-slot.is-pending .lab-slot-head span { background: #fff0c7; color: #8a6200; }
 .slot-reserve-link {
   align-items: center;
   border: 1px dashed #9dcfbe;

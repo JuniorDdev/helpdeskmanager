@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Solicitar laboratório | Helpdesk Manager{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div>
+    <span class="page-eyebrow">Agendamento de laboratórios</span>
+    <h1>Solicitar laboratório</h1>
+    <p>Informe os dados da aula. A solicitação será analisada pela equipe responsável na ordem de chegada.</p>
+  </div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('agenda.index') }}">Ver painel de disponibilidade</a>
+</section>
+<div class="form-card agenda-form-card">
+  <form method="post" action="{{ url_for('agenda.novo_agendamento') }}" class="row g-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="data_retorno" value="{{ hoje.isoformat() }}">
+    <div class="col-md-6"><label class="form-label" for="nome">Nome do professor</label><input id="nome" name="professor_nome" class="form-control" value="{{ professor.nome }}" maxlength="120" required></div>
+    <div class="col-md-6"><label class="form-label" for="matricula">Matrícula</label><input id="matricula" name="professor_matricula" class="form-control" maxlength="60" required></div>
+    <div class="col-12"><label class="form-label" for="titulo">Disciplina ou atividade</label><input id="titulo" name="titulo" class="form-control" maxlength="150" required></div>
+    <div class="col-md-4"><label class="form-label" for="data">Data</label><input id="data" name="data_reserva" type="date" class="form-control" min="{{ hoje.isoformat() }}" required></div>
+    <div class="col-md-4"><label class="form-label" for="turno">Turno</label><select id="turno" name="turno" class="form-select" required>{% for codigo, turno in turnos.items() %}<option value="{{ codigo }}">{{ turno.label }} · {{ turno.inicio.strftime('%H:%M') }}–{{ turno.fim.strftime('%H:%M') }}</option>{% endfor %}</select></div>
+    <div class="col-md-4"><label class="form-label" for="laboratorio">Laboratório</label><select id="laboratorio" name="laboratorio_id" class="form-select" required>{% for laboratorio in laboratorios %}<option value="{{ laboratorio.id }}">{{ laboratorio.nome }}{% if laboratorio.capacidade %} ({{ laboratorio.capacidade }} computadores){% endif %}</option>{% endfor %}</select></div>
+    <div class="col-md-4"><label class="form-label" for="alunos">Quantidade de alunos</label><input id="alunos" name="quantidade_alunos" type="number" min="1" class="form-control" required></div>
+    <div class="col-12"><label class="form-label" for="observacoes">Observações</label><textarea id="observacoes" name="finalidade" class="form-control" rows="3" placeholder="Equipamentos necessários ou outras informações."></textarea></div>
+    <div class="col-12"><button class="btn btn-primary" type="submit">Enviar solicitação</button></div>
+  </form>
+</div>
+{% endblock %}

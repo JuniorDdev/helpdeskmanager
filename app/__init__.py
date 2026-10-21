@@ -37,7 +37,7 @@ def create_app(config_overrides=None):
         return usuario if usuario and usuario.ativo else None
 
     from app.routes.auth import auth_bp
-    from app.routes.agenda import agenda_bp
+    from app.routes.agenda import agenda_bp, solicitar_professor
     from app.routes.chamados import chamados_bp
     from app.routes.conferencias import conferencias_bp
     from app.routes.dashboard import dashboard_bp
@@ -48,6 +48,11 @@ def create_app(config_overrides=None):
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(agenda_bp)
+    app.add_url_rule(
+        "/agendamento-laboratorios",
+        endpoint="agendamento_laboratorios",
+        view_func=solicitar_professor,
+    )
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(chamados_bp)
     app.register_blueprint(maquinas_bp)

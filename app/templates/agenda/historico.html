@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Histórico {{ booking.protocolo }} | Helpdesk Manager{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div>
+    <span class="page-eyebrow">Histórico de solicitação</span>
+    <h1>{{ booking.protocolo }} · {{ booking.titulo }}</h1>
+    <p>{{ booking.professor_nome or booking.usuario.nome }} · {{ booking.laboratorio.nome }} · {{ booking.inicio.strftime('%d/%m/%Y') }} · {{ booking.turno_label }}</p>
+  </div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('agenda.index', data=booking.inicio.date().isoformat()) }}">Voltar à agenda</a>
+</section>
+<section class="agenda-panel">
+  {% for item in historicos %}
+  <article class="notice-card mb-2">
+    <strong>{{ item.acao.replace('_', ' ')|capitalize }}</strong>
+    <small>{{ item.criado_em.strftime('%d/%m/%Y %H:%M') }} · {{ item.usuario.nome }}</small>
+    {% if item.descricao %}<p class="mb-0">{{ item.descricao }}</p>{% endif %}
+  </article>
+  {% else %}
+  <div class="agenda-empty compact"><strong>Sem histórico registrado</strong></div>
+  {% endfor %}
+</section>
+{% endblock %}

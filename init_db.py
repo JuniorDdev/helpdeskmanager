@@ -4,11 +4,13 @@ import secrets
 from app import create_app
 from app.extensions import db
 from app.models import Estoque, Laboratorio, Setor, SlaRegra, Usuario
+from app.services.agenda_schema import ensure_agenda_schema
 
 app = create_app()
 
 with app.app_context():
     db.create_all()
+    ensure_agenda_schema()
 
     admin_email = (os.getenv("ADMIN_EMAIL") or "admin@admin.com").strip().lower()
     configured_admin_password = os.getenv("ADMIN_PASSWORD")
@@ -68,17 +70,22 @@ with app.app_context():
     elif laboratorio_inicial and laboratorio_01:
         laboratorio_inicial.ativo = False
 
-    for numero in range(1, 6):
+    capacidades_laboratorios = {5: 32, 6: 24, 7: 24, 8: 32}
+    for numero in range(1, 9):
         nome = f"Lab {numero:02d}"
-        if not Laboratorio.query.filter_by(nome=nome).first():
+        laboratorio = Laboratorio.query.filter_by(nome=nome).first()
+        if not laboratorio:
             db.session.add(
                 Laboratorio(
                     nome=nome,
                     localizacao="Bloco principal",
                     descricao=f"Laboratório de informática {numero:02d}.",
+                    capacidade=capacidades_laboratorios.get(numero),
                     ativo=True,
                 )
             )
+        elif numero in capacidades_laboratorios:
+            laboratorio.capacidade = capacidades_laboratorios[numero]
 
     db.session.commit()
     print("Banco inicializado com sucesso.")

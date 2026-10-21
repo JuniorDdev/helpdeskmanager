@@ -7,7 +7,14 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload
 
 from app.extensions import db
-from app.models import AgendamentoLaboratorio, Laboratorio, Recado
+from app.models import (
+    AgendamentoLaboratorio,
+    HistoricoAgendamentoLaboratorio,
+    Laboratorio,
+    NotificacaoAgenda,
+    Recado,
+    Usuario,
+)
 from app.utils.authz import SUPPORT_ROLES, has_role, roles_required
 from app.utils.validation import (
     ValidationError,
@@ -25,6 +32,14 @@ TURNOS = {
     "manha": {"label": "Manhã", "inicio": time(8, 0), "fim": time(12, 0)},
     "tarde": {"label": "Tarde", "inicio": time(13, 0), "fim": time(17, 0)},
     "noite": {"label": "Noite", "inicio": time(18, 0), "fim": time(22, 0)},
+}
+STATUS_ATIVOS = {"solicitado", "agendado"}
+STATUS_LABELS = {
+    "solicitado": "Em análise",
+    "agendado": "Confirmado",
+    "recusado": "Recusado",
+    "cancelado": "Cancelado",
+    "excluido": "Excluído",
 }
 
 
@@ -47,6 +62,34 @@ def selected_date():
 
 def can_manage_booking(booking):
     return has_role(*SUPPORT_ROLES) or booking.usuario_id == current_user.id
+
+
+def register_history(booking, action, description=None, actor=None):
+    db.session.add(
+        HistoricoAgendamentoLaboratorio(
+            agendamento=booking,
+            usuario_id=(actor or current_user).id,
+            acao=action,
+            descricao=description,
+        )
+    )
+
+
+def notify_support(booking):
+    recipients = Usuario.query.filter(
+        Usuario.ativo.is_(True), Usuario.perfil.in_(SUPPORT_ROLES)
+    ).all()
+    for recipient in recipients:
+        db.session.add(
+            NotificacaoAgenda(
+                usuario_id=recipient.id,
+                agendamento=booking,
+                mensagem=(
+                    f"Nova solicitação {booking.protocolo}: {booking.professor_nome} "
+                    f"solicitou {booking.laboratorio.nome}."
+                ),
+            )
+        )
 
 
 def booking_conflict(laboratorio_id, inicio, fim, ignore_id=None):
@@ -73,13 +116,21 @@ def apply_booking_fields(booking):
     inicio = datetime.combine(data_reserva, turno["inicio"])
     fim = datetime.combine(data_reserva, turno["fim"])
 
-    conflict = booking_conflict(laboratorio.id, inicio, fim, booking.id)
-    if conflict:
+    quantidade_alunos = integer(request.form, "quantidade_alunos", "Quantidade de alunos", 1)
+    if laboratorio.capacidade and quantidade_alunos > laboratorio.capacidade:
         raise ValidationError(
-            "Esse laboratório já está reservado no turno selecionado."
+            f"A quantidade de alunos excede a capacidade de {laboratorio.capacidade} lugares do laboratório."
         )
 
+    if booking.status == "agendado":
+        conflict = booking_conflict(laboratorio.id, inicio, fim, booking.id)
+        if conflict:
+            raise ValidationError("Esse laboratório já está reservado no turno selecionado.")
+
     booking.laboratorio_id = laboratorio.id
+    booking.professor_nome = required_text(request.form, "professor_nome", "Nome do professor", 120)
+    booking.professor_matricula = required_text(request.form, "professor_matricula", "Matrícula", 60)
+    booking.quantidade_alunos = quantidade_alunos
     booking.titulo = required_text(request.form, "titulo", "Título", 150)
     booking.finalidade = optional_text(request.form, "finalidade")
     booking.inicio = inicio
@@ -99,7 +150,7 @@ def index():
             joinedload(AgendamentoLaboratorio.usuario),
         )
         .filter(
-            AgendamentoLaboratorio.status == "agendado",
+            AgendamentoLaboratorio.status.in_(STATUS_ATIVOS),
             AgendamentoLaboratorio.inicio < fim_dia,
             AgendamentoLaboratorio.fim > inicio_dia,
         )
@@ -152,6 +203,25 @@ def index():
     todos_laboratorios = []
     if has_role(*SUPPORT_ROLES):
         todos_laboratorios = Laboratorio.query.order_by(Laboratorio.nome).all()
+    notificacoes = []
+    solicitacoes_pendentes = []
+    if has_role(*SUPPORT_ROLES):
+        notificacoes = (
+            NotificacaoAgenda.query.options(joinedload(NotificacaoAgenda.agendamento))
+            .filter_by(usuario_id=current_user.id, lida_em=None)
+            .order_by(NotificacaoAgenda.criado_em.desc())
+            .limit(10)
+            .all()
+        )
+        solicitacoes_pendentes = (
+            AgendamentoLaboratorio.query.options(
+                joinedload(AgendamentoLaboratorio.laboratorio),
+                joinedload(AgendamentoLaboratorio.usuario),
+            )
+            .filter_by(status="solicitado")
+            .order_by(AgendamentoLaboratorio.criado_em, AgendamentoLaboratorio.id)
+            .all()
+        )
 
     return render_template(
         "agenda/index.html",
@@ -168,16 +238,35 @@ def index():
         proxima_data=data_selecionada + timedelta(days=1),
         hoje=date.today(),
         suporte=has_role(*SUPPORT_ROLES),
+        status_labels=STATUS_LABELS,
+        notificacoes=notificacoes,
+        solicitacoes_pendentes=solicitacoes_pendentes,
+    )
+
+
+@agenda_bp.route("/solicitar")
+@login_required
+def solicitar_professor():
+    laboratorios = Laboratorio.query.filter_by(ativo=True).order_by(Laboratorio.nome).all()
+    return render_template(
+        "agenda/solicitar.html",
+        laboratorios=laboratorios,
+        turnos=TURNOS,
+        hoje=date.today(),
+        professor=current_user,
     )
 
 
 @agenda_bp.route("/agendamentos/novo", methods=["POST"])
 @login_required
 def novo_agendamento():
-    booking = AgendamentoLaboratorio(usuario_id=current_user.id, status="agendado")
+    booking = AgendamentoLaboratorio(usuario_id=current_user.id, status="solicitado")
     try:
         apply_booking_fields(booking)
         db.session.add(booking)
+        db.session.flush()
+        register_history(booking, "solicitacao_criada", "Solicitação aguardando análise da equipe.")
+        notify_support(booking)
         db.session.commit()
     except ValidationError as error:
         db.session.rollback()
@@ -186,7 +275,10 @@ def novo_agendamento():
         db.session.rollback()
         flash("Não foi possível salvar a reserva.", "danger")
     else:
-        flash("Laboratório reservado com sucesso.", "success")
+        flash(
+            f"Solicitação {booking.protocolo} enviada. A equipe confirmará o agendamento após análise.",
+            "success",
+        )
     return redirect(url_for("agenda.index", data=request.form.get("data_retorno") or date.today()))
 
 
@@ -203,6 +295,7 @@ def editar_agendamento(id):
     if request.method == "POST":
         try:
             apply_booking_fields(booking)
+            register_history(booking, "solicitacao_atualizada", "Dados da solicitação foram atualizados.")
             db.session.commit()
         except ValidationError as error:
             db.session.rollback()
@@ -219,21 +312,121 @@ def editar_agendamento(id):
     )
 
 
+@agenda_bp.route("/agendamentos/<int:id>/historico")
+@login_required
+def historico_agendamento(id):
+    booking = AgendamentoLaboratorio.query.get_or_404(id)
+    if not can_manage_booking(booking):
+        abort(403)
+    historicos = (
+        HistoricoAgendamentoLaboratorio.query.options(joinedload(HistoricoAgendamentoLaboratorio.usuario))
+        .filter_by(agendamento_id=booking.id)
+        .order_by(HistoricoAgendamentoLaboratorio.criado_em.desc())
+        .all()
+    )
+    return render_template("agenda/historico.html", booking=booking, historicos=historicos)
+
+
+@agenda_bp.route("/agendamentos/<int:id>/confirmar", methods=["POST"])
+@roles_required("admin", "tecnico")
+def confirmar_agendamento(id):
+    booking = AgendamentoLaboratorio.query.with_for_update().get_or_404(id)
+    try:
+        if booking.status != "solicitado":
+            raise ValidationError("Somente solicitações pendentes podem ser confirmadas.")
+        if booking.laboratorio.capacidade and booking.quantidade_alunos > booking.laboratorio.capacidade:
+            raise ValidationError("A quantidade de alunos excede a capacidade do laboratório.")
+        anterior = (
+            AgendamentoLaboratorio.query.filter(
+                AgendamentoLaboratorio.laboratorio_id == booking.laboratorio_id,
+                AgendamentoLaboratorio.status == "solicitado",
+                AgendamentoLaboratorio.inicio == booking.inicio,
+                AgendamentoLaboratorio.fim == booking.fim,
+                AgendamentoLaboratorio.id < booking.id,
+            )
+            .order_by(AgendamentoLaboratorio.criado_em, AgendamentoLaboratorio.id)
+            .first()
+        )
+        if anterior:
+            raise ValidationError(
+                f"A solicitação {anterior.protocolo} chegou antes e deve ser analisada primeiro."
+            )
+        if booking_conflict(booking.laboratorio_id, booking.inicio, booking.fim, booking.id):
+            raise ValidationError("Este horário já foi confirmado para outra solicitação.")
+        booking.status = "agendado"
+        booking.confirmado_por_id = current_user.id
+        booking.confirmado_em = datetime.utcnow()
+        booking.motivo_decisao = optional_text(request.form, "motivo_decisao")
+        register_history(booking, "agendamento_confirmado", booking.motivo_decisao or "Agendamento confirmado.")
+        db.session.commit()
+    except (ValidationError, SQLAlchemyError) as error:
+        db.session.rollback()
+        flash(str(error) if isinstance(error, ValidationError) else "Não foi possível confirmar a solicitação.", "danger")
+    else:
+        flash(
+            f"{booking.protocolo} confirmado: {booking.laboratorio.nome}, {booking.inicio.strftime('%d/%m/%Y')} "
+            f"no turno da {booking.turno_label.lower()}, para {booking.quantidade_alunos} alunos. "
+            "Oriente o professor a chegar com antecedência e comunicar qualquer cancelamento.",
+            "success",
+        )
+    return redirect(url_for("agenda.index", data=booking.inicio.date()))
+
+
+@agenda_bp.route("/agendamentos/<int:id>/recusar", methods=["POST"])
+@roles_required("admin", "tecnico")
+def recusar_agendamento(id):
+    booking = AgendamentoLaboratorio.query.get_or_404(id)
+    try:
+        if booking.status != "solicitado":
+            raise ValidationError("Somente solicitações pendentes podem ser recusadas.")
+        booking.status = "recusado"
+        booking.motivo_decisao = required_text(request.form, "motivo_decisao", "Motivo da recusa")
+        register_history(booking, "solicitacao_recusada", booking.motivo_decisao)
+        db.session.commit()
+    except (ValidationError, SQLAlchemyError) as error:
+        db.session.rollback()
+        flash(str(error) if isinstance(error, ValidationError) else "Não foi possível recusar a solicitação.", "danger")
+    else:
+        flash(f"{booking.protocolo} foi recusada e ficou registrada no histórico.", "success")
+    return redirect(url_for("agenda.index", data=booking.inicio.date()))
+
+
 @agenda_bp.route("/agendamentos/<int:id>/cancelar", methods=["POST"])
 @login_required
 def cancelar_agendamento(id):
     booking = AgendamentoLaboratorio.query.get_or_404(id)
     if not can_manage_booking(booking):
         abort(403)
-    if booking.status == "agendado":
+    if booking.status in STATUS_ATIVOS:
         try:
             booking.status = "cancelado"
+            booking.motivo_decisao = optional_text(request.form, "motivo_decisao") or "Cancelado pelo solicitante ou pela equipe."
+            register_history(booking, "agendamento_cancelado", booking.motivo_decisao)
             db.session.commit()
         except SQLAlchemyError:
             db.session.rollback()
             flash("Não foi possível cancelar a reserva.", "danger")
         else:
-            flash("Reserva cancelada.", "success")
+            flash("Agendamento cancelado e preservado no histórico.", "success")
+    return redirect(url_for("agenda.index", data=request.form.get("data_retorno") or date.today()))
+
+
+@agenda_bp.route("/agendamentos/<int:id>/excluir", methods=["POST"])
+@roles_required("admin", "tecnico")
+def excluir_agendamento(id):
+    booking = AgendamentoLaboratorio.query.get_or_404(id)
+    try:
+        if booking.status == "excluido":
+            raise ValidationError("Este agendamento já foi excluído.")
+        booking.status = "excluido"
+        booking.motivo_decisao = optional_text(request.form, "motivo_decisao") or "Excluído pela equipe responsável."
+        register_history(booking, "agendamento_excluido", booking.motivo_decisao)
+        db.session.commit()
+    except (ValidationError, SQLAlchemyError) as error:
+        db.session.rollback()
+        flash(str(error) if isinstance(error, ValidationError) else "Não foi possível excluir o agendamento.", "danger")
+    else:
+        flash("Agendamento excluído do painel ativo e preservado no histórico.", "success")
     return redirect(url_for("agenda.index", data=request.form.get("data_retorno") or date.today()))
 
 
