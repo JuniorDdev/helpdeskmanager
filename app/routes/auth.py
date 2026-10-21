@@ -9,7 +9,7 @@ from app.utils.validation import ValidationError, choice, optional_text, require
 
 
 auth_bp = Blueprint("auth", __name__)
-USER_PROFILES = {"admin", "tecnico", "usuario", "almoxarife"}
+USER_PROFILES = {"admin", "tecnico", "usuario", "almoxarife", "professor"}
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
@@ -24,6 +24,8 @@ def login():
         usuario = Usuario.query.filter_by(email=email, ativo=True).first()
         if usuario and usuario.check_senha(senha):
             login_user(usuario)
+            if usuario.perfil == "professor":
+                return redirect(url_for("agendamento_laboratorios"))
             return redirect(url_for("dashboard.index"))
         flash("E-mail ou senha inválidos.", "danger")
     return render_template("auth/login.html")
@@ -45,6 +47,9 @@ def novo_usuario():
             nome = required_text(request.form, "nome", "Nome", 120)
             email = required_text(request.form, "email", "E-mail", 120).lower()
             perfil = choice(request.form, "perfil", USER_PROFILES, "Perfil")
+            matricula = optional_text(request.form, "matricula", 60)
+            if perfil == "professor" and not matricula:
+                raise ValidationError("A matrícula é obrigatória para o perfil Professor.")
             senha = required_text(request.form, "senha", "Senha")
             if len(senha) < 10:
                 raise ValidationError("A senha deve ter pelo menos 10 caracteres.")
@@ -55,6 +60,7 @@ def novo_usuario():
                 perfil=perfil,
                 setor=optional_text(request.form, "setor", 100),
                 telefone=optional_text(request.form, "telefone", 30),
+                matricula=matricula or None,
                 ativo=True,
             )
             usuario.set_senha(senha)

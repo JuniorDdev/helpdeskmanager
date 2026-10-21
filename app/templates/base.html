@@ -19,7 +19,7 @@
   <div class="container-fluid app-shell">
     <div class="row g-0">
       <aside class="col-lg-2 app-sidebar" id="appSidebar">
-        <a class="brand" href="{{ url_for('dashboard.index') }}">
+        <a class="brand" href="{{ url_for('agendamento_laboratorios') if current_user.perfil == 'professor' else url_for('dashboard.index') }}">
           <span class="brand-mark">HD</span>
           <span class="brand-copy"><strong>Helpdesk</strong><small>Operations center</small></span>
         </a>
@@ -29,6 +29,9 @@
         </div>
         <div class="nav-label">Visão geral</div>
         <nav class="sidebar-nav" aria-label="Navegação principal">
+          {% if current_user.perfil == 'professor' %}
+          <a class="sidebar-link" href="{{ url_for('agendamento_laboratorios') }}"><span class="nav-icon">▦</span><span>Agendamento</span></a>
+          {% else %}
           <a class="sidebar-link" href="{{ url_for('dashboard.index') }}"><span class="nav-icon">⌂</span><span>Dashboard</span></a>
           <a class="sidebar-link" href="{{ url_for('chamados.listar') }}"><span class="nav-icon">◈</span><span>Chamados</span></a>
           <a class="sidebar-link" href="{{ url_for('agenda.index') }}"><span class="nav-icon">▦</span><span>Agenda</span></a>
@@ -47,6 +50,7 @@
           {% if current_user.perfil == 'admin' %}
           <div class="nav-label mt-3">Administração</div>
           <a class="sidebar-link" href="{{ url_for('auth.novo_usuario') }}"><span class="nav-icon">♙</span><span>Usuários</span></a>
+          {% endif %}
           {% endif %}
         </nav>
         <form method="post" action="{{ url_for('auth.logout') }}" class="logout-form">

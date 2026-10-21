@@ -69,7 +69,7 @@
                 <div class="slot-booking">
                   <h3>{{ item.titulo }}</h3>
                   {% if item.finalidade %}<p>{{ item.finalidade }}</p>{% endif %}
-                  <small>{{ item.professor_nome or item.usuario.nome }} · {{ item.quantidade_alunos }} alunos{% if item.laboratorio.capacidade %} / {{ item.laboratorio.capacidade }} lugares{% endif %}</small>
+                  <small>{{ item.professor_nome or item.usuario.nome }} · {{ item.quantidade_alunos }} alunos{% if item.laboratorio.capacidade %} / {{ item.laboratorio.capacidade }} computadores{% endif %}</small>
                   <small>{{ item.protocolo }} · {{ status_labels[item.status] }}</small>
                   {% if suporte or item.usuario_id == current_user.id %}
                   <div class="slot-actions">
@@ -149,7 +149,7 @@
           <label class="form-label" for="reservaLaboratorio">Laboratório</label>
           <select id="reservaLaboratorio" name="laboratorio_id" class="form-select" required>
             {% for laboratorio in laboratorios %}
-            <option value="{{ laboratorio.id }}" {% if laboratorio.id == preselected_lab_id %}selected{% endif %}>{{ laboratorio.nome }}{% if laboratorio.capacidade %} ({{ laboratorio.capacidade }} lugares){% endif %}</option>
+            <option value="{{ laboratorio.id }}" {% if laboratorio.id == preselected_lab_id %}selected{% endif %}>{{ laboratorio.nome }}{% if laboratorio.capacidade %} ({{ laboratorio.capacidade }} computadores){% endif %}</option>
             {% endfor %}
           </select>
         </div>
@@ -274,7 +274,7 @@
             <input type="hidden" name="data_retorno" value="{{ data_selecionada.isoformat() }}">
             <div class="col-12"><label class="form-label" for="labNome">Nome</label><input id="labNome" name="nome" class="form-control" maxlength="120" required></div>
             <div class="col-8"><label class="form-label" for="labLocal">Localização</label><input id="labLocal" name="localizacao" class="form-control" maxlength="150"></div>
-            <div class="col-4"><label class="form-label" for="labCapacidade">Lugares</label><input id="labCapacidade" name="capacidade" type="number" min="1" class="form-control"></div>
+            <div class="col-4"><label class="form-label" for="labCapacidade">Computadores</label><input id="labCapacidade" name="capacidade" type="number" min="1" class="form-control"></div>
             <div class="col-12"><label class="form-label" for="labDescricao">Descrição</label><textarea id="labDescricao" name="descricao" class="form-control" rows="2"></textarea></div>
             <div class="col-12"><button class="btn btn-outline-primary w-100" type="submit">Adicionar laboratório</button></div>
           </form>

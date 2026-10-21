@@ -119,7 +119,7 @@ def apply_booking_fields(booking):
     quantidade_alunos = integer(request.form, "quantidade_alunos", "Quantidade de alunos", 1)
     if laboratorio.capacidade and quantidade_alunos > laboratorio.capacidade:
         raise ValidationError(
-            f"A quantidade de alunos excede a capacidade de {laboratorio.capacidade} lugares do laboratório."
+            f"A quantidade de alunos excede a capacidade de {laboratorio.capacidade} computadores do laboratório."
         )
 
     if booking.status == "agendado":
@@ -140,6 +140,8 @@ def apply_booking_fields(booking):
 @agenda_bp.route("/")
 @login_required
 def index():
+    if current_user.perfil == "professor":
+        return redirect(url_for("agendamento_laboratorios"))
     data_selecionada = selected_date()
     inicio_dia = datetime.combine(data_selecionada, time.min)
     fim_dia = inicio_dia + timedelta(days=1)
@@ -248,12 +250,19 @@ def index():
 @login_required
 def solicitar_professor():
     laboratorios = Laboratorio.query.filter_by(ativo=True).order_by(Laboratorio.nome).all()
+    agendamentos = (
+        AgendamentoLaboratorio.query.options(joinedload(AgendamentoLaboratorio.laboratorio))
+        .filter_by(usuario_id=current_user.id)
+        .order_by(AgendamentoLaboratorio.inicio.desc())
+        .all()
+    )
     return render_template(
         "agenda/solicitar.html",
         laboratorios=laboratorios,
         turnos=TURNOS,
         hoje=date.today(),
         professor=current_user,
+        agendamentos=agendamentos,
     )
 
 
@@ -279,7 +288,8 @@ def novo_agendamento():
             f"Solicitação {booking.protocolo} enviada. A equipe confirmará o agendamento após análise.",
             "success",
         )
-    return redirect(url_for("agenda.index", data=request.form.get("data_retorno") or date.today()))
+    destino = "agendamento_laboratorios" if current_user.perfil == "professor" else "agenda.index"
+    return redirect(url_for(destino, data=request.form.get("data_retorno") or date.today()))
 
 
 @agenda_bp.route("/agendamentos/<int:id>/editar", methods=["GET", "POST"])

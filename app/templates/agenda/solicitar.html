@@ -7,14 +7,14 @@
     <h1>Solicitar laboratório</h1>
     <p>Informe os dados da aula. A solicitação será analisada pela equipe responsável na ordem de chegada.</p>
   </div>
-  <a class="btn btn-outline-secondary" href="{{ url_for('agenda.index') }}">Ver painel de disponibilidade</a>
+  {% if current_user.perfil != 'professor' %}<a class="btn btn-outline-secondary" href="{{ url_for('agenda.index') }}">Ver painel de disponibilidade</a>{% endif %}
 </section>
 <div class="form-card agenda-form-card">
   <form method="post" action="{{ url_for('agenda.novo_agendamento') }}" class="row g-3">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="data_retorno" value="{{ hoje.isoformat() }}">
     <div class="col-md-6"><label class="form-label" for="nome">Nome do professor</label><input id="nome" name="professor_nome" class="form-control" value="{{ professor.nome }}" maxlength="120" required></div>
-    <div class="col-md-6"><label class="form-label" for="matricula">Matrícula</label><input id="matricula" name="professor_matricula" class="form-control" maxlength="60" required></div>
+    <div class="col-md-6"><label class="form-label" for="matricula">Matrícula</label><input id="matricula" name="professor_matricula" class="form-control" value="{{ professor.matricula or '' }}" maxlength="60" required></div>
     <div class="col-12"><label class="form-label" for="titulo">Disciplina ou atividade</label><input id="titulo" name="titulo" class="form-control" maxlength="150" required></div>
     <div class="col-md-4"><label class="form-label" for="data">Data</label><input id="data" name="data_reserva" type="date" class="form-control" min="{{ hoje.isoformat() }}" required></div>
     <div class="col-md-4"><label class="form-label" for="turno">Turno</label><select id="turno" name="turno" class="form-select" required>{% for codigo, turno in turnos.items() %}<option value="{{ codigo }}">{{ turno.label }} · {{ turno.inicio.strftime('%H:%M') }}–{{ turno.fim.strftime('%H:%M') }}</option>{% endfor %}</select></div>
@@ -24,4 +24,14 @@
     <div class="col-12"><button class="btn btn-primary" type="submit">Enviar solicitação</button></div>
   </form>
 </div>
+{% if current_user.perfil == 'professor' %}
+<section class="agenda-panel mt-4">
+  <div class="agenda-panel-header"><div><span class="page-eyebrow">Minhas solicitações</span><h2>Acompanhamento</h2></div></div>
+  {% for item in agendamentos %}
+  <article class="notice-card mb-2"><strong>{{ item.protocolo }} · {{ item.laboratorio.nome }}</strong><p class="mb-0">{{ item.inicio.strftime('%d/%m/%Y') }} · {{ item.turno_label }} · {{ item.quantidade_alunos }} alunos · {{ {'solicitado': 'Em análise', 'agendado': 'Confirmado', 'recusado': 'Recusado', 'cancelado': 'Cancelado', 'excluido': 'Excluído'}[item.status] }}</p></article>
+  {% else %}
+  <div class="agenda-empty compact"><strong>Nenhuma solicitação cadastrada.</strong></div>
+  {% endfor %}
+</section>
+{% endif %}
 {% endblock %}

@@ -1,7 +1,8 @@
 import os
 
-from flask import Flask, render_template
+from flask import Flask, abort, redirect, render_template, request, url_for
 from flask_wtf.csrf import CSRFError
+from flask_login import current_user
 
 from app.extensions import csrf, db, limiter, login_manager, migrate
 from config import Config
@@ -60,6 +61,22 @@ def create_app(config_overrides=None):
     app.register_blueprint(manutencoes_bp)
     app.register_blueprint(movimentacoes_bp)
     app.register_blueprint(conferencias_bp)
+
+    @app.before_request
+    def restrict_professor_access():
+        """Professores usam exclusivamente o painel de agendamento."""
+        if not current_user.is_authenticated or current_user.perfil != "professor":
+            return None
+        allowed_endpoints = {
+            "agendamento_laboratorios",
+            "agenda.solicitar_professor",
+            "agenda.novo_agendamento",
+            "auth.logout",
+            "static",
+        }
+        if request.endpoint not in allowed_endpoints:
+            abort(403)
+        return None
 
     from app.cli import importar_agenda_excel_command
 

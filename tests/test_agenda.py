@@ -48,12 +48,21 @@ class AgendaRoutesTestCase(unittest.TestCase):
                 perfil="usuario",
                 ativo=True,
             )
+            professor = Usuario(
+                nome="Professora Teste",
+                email="professora@teste.local",
+                senha_hash="inutilizado",
+                perfil="professor",
+                matricula="PROF-001",
+                ativo=True,
+            )
             laboratorios = [Laboratorio(nome=f"Lab {numero:02d}", ativo=True) for numero in range(1, 6)]
-            db.session.add_all([admin, usuario, outro, *laboratorios])
+            db.session.add_all([admin, usuario, outro, professor, *laboratorios])
             db.session.commit()
             self.admin_id = admin.id
             self.usuario_id = usuario.id
             self.outro_id = outro.id
+            self.professor_id = professor.id
             self.laboratorio_id = laboratorios[0].id
 
     def tearDown(self):
@@ -198,6 +207,15 @@ class AgendaRoutesTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("Publicar novo recado".encode(), response.data)
         self.assertIn("Gerenciar laboratórios".encode(), response.data)
+
+    def test_professor_acessa_somente_painel_de_agendamento(self):
+        self.login(self.professor_id)
+        response = self.client.get("/agendamento-laboratorios")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Professora Teste", response.data)
+        self.assertIn(b"PROF-001", response.data)
+        self.assertEqual(self.client.get("/").status_code, 403)
+        self.assertEqual(self.client.get("/chamados/").status_code, 403)
 
 
 if __name__ == "__main__":

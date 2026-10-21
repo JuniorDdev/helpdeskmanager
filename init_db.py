@@ -5,12 +5,14 @@ from app import create_app
 from app.extensions import db
 from app.models import Estoque, Laboratorio, Setor, SlaRegra, Usuario
 from app.services.agenda_schema import ensure_agenda_schema
+from app.services.user_schema import ensure_user_schema
 
 app = create_app()
 
 with app.app_context():
     db.create_all()
     ensure_agenda_schema()
+    ensure_user_schema()
 
     admin_email = (os.getenv("ADMIN_EMAIL") or "admin@admin.com").strip().lower()
     configured_admin_password = os.getenv("ADMIN_PASSWORD")
