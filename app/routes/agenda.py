@@ -16,6 +16,7 @@ from app.models import (
     Usuario,
 )
 from app.utils.authz import SUPPORT_ROLES, has_role, roles_required
+from app.services.notifications import notify_support as notify_general_support
 from app.utils.validation import (
     ValidationError,
     choice,
@@ -26,7 +27,7 @@ from app.utils.validation import (
 )
 
 
-agenda_bp = Blueprint("agenda", __name__, url_prefix="/agenda")
+agenda_bp = Blueprint("agenda", __name__, url_prefix="/agendamentos")
 PRIORIDADES_RECADOS = {"normal", "importante", "urgente"}
 TURNOS = {
     "manha": {"label": "Manhã", "inicio": time(8, 0), "fim": time(12, 0)},
@@ -90,6 +91,12 @@ def notify_support(booking):
                 ),
             )
         )
+    notify_general_support(
+        "agendamento",
+        "Nova solicitação de agendamento",
+        f"{booking.professor_nome} solicitou {booking.laboratorio.nome} ({booking.protocolo}).",
+        url_for("agenda.index", data=booking.inicio.date().isoformat()),
+    )
 
 
 def booking_conflict(laboratorio_id, inicio, fim, ignore_id=None):
@@ -249,7 +256,39 @@ def index():
 @agenda_bp.route("/solicitar")
 @login_required
 def solicitar_professor():
+    data_selecionada = selected_date()
+    inicio_dia = datetime.combine(data_selecionada, time.min)
+    fim_dia = inicio_dia + timedelta(days=1)
     laboratorios = Laboratorio.query.filter_by(ativo=True).order_by(Laboratorio.nome).all()
+    confirmados = (
+        AgendamentoLaboratorio.query.filter(
+            AgendamentoLaboratorio.status == "agendado",
+            AgendamentoLaboratorio.inicio < fim_dia,
+            AgendamentoLaboratorio.fim > inicio_dia,
+        )
+        .all()
+    )
+    mapa_turnos = []
+    for codigo, turno in TURNOS.items():
+        inicio_turno = datetime.combine(data_selecionada, turno["inicio"])
+        fim_turno = datetime.combine(data_selecionada, turno["fim"])
+        slots = []
+        for laboratorio in laboratorios:
+            ocupado = any(
+                item.laboratorio_id == laboratorio.id
+                and item.inicio < fim_turno
+                and item.fim > inicio_turno
+                for item in confirmados
+            )
+            slots.append({"laboratorio": laboratorio, "ocupado": ocupado})
+        mapa_turnos.append({"codigo": codigo, "label": turno["label"], "periodo": f"{turno['inicio'].strftime('%H:%M')}–{turno['fim'].strftime('%H:%M')}", "slots": slots})
+
+    preselected_lab_id = request.args.get("lab", type=int)
+    if not any(laboratorio.id == preselected_lab_id for laboratorio in laboratorios):
+        preselected_lab_id = laboratorios[0].id if laboratorios else None
+    preselected_turno = request.args.get("turno")
+    if preselected_turno not in TURNOS:
+        preselected_turno = "manha"
     agendamentos = (
         AgendamentoLaboratorio.query.options(joinedload(AgendamentoLaboratorio.laboratorio))
         .filter_by(usuario_id=current_user.id)
@@ -263,10 +302,16 @@ def solicitar_professor():
         hoje=date.today(),
         professor=current_user,
         agendamentos=agendamentos,
+        data_selecionada=data_selecionada,
+        data_anterior=data_selecionada - timedelta(days=1),
+        proxima_data=data_selecionada + timedelta(days=1),
+        mapa_turnos=mapa_turnos,
+        preselected_lab_id=preselected_lab_id,
+        preselected_turno=preselected_turno,
     )
 
 
-@agenda_bp.route("/agendamentos/novo", methods=["POST"])
+@agenda_bp.route("/novo", methods=["POST"])
 @login_required
 def novo_agendamento():
     booking = AgendamentoLaboratorio(usuario_id=current_user.id, status="solicitado")
@@ -292,7 +337,7 @@ def novo_agendamento():
     return redirect(url_for(destino, data=request.form.get("data_retorno") or date.today()))
 
 
-@agenda_bp.route("/agendamentos/<int:id>/editar", methods=["GET", "POST"])
+@agenda_bp.route("/<int:id>/editar", methods=["GET", "POST"])
 @login_required
 def editar_agendamento(id):
     booking = AgendamentoLaboratorio.query.get_or_404(id)
@@ -322,7 +367,7 @@ def editar_agendamento(id):
     )
 
 
-@agenda_bp.route("/agendamentos/<int:id>/historico")
+@agenda_bp.route("/<int:id>/historico")
 @login_required
 def historico_agendamento(id):
     booking = AgendamentoLaboratorio.query.get_or_404(id)
@@ -337,7 +382,7 @@ def historico_agendamento(id):
     return render_template("agenda/historico.html", booking=booking, historicos=historicos)
 
 
-@agenda_bp.route("/agendamentos/<int:id>/confirmar", methods=["POST"])
+@agenda_bp.route("/<int:id>/confirmar", methods=["POST"])
 @roles_required("admin", "tecnico")
 def confirmar_agendamento(id):
     booking = AgendamentoLaboratorio.query.with_for_update().get_or_404(id)
@@ -382,7 +427,7 @@ def confirmar_agendamento(id):
     return redirect(url_for("agenda.index", data=booking.inicio.date()))
 
 
-@agenda_bp.route("/agendamentos/<int:id>/recusar", methods=["POST"])
+@agenda_bp.route("/<int:id>/recusar", methods=["POST"])
 @roles_required("admin", "tecnico")
 def recusar_agendamento(id):
     booking = AgendamentoLaboratorio.query.get_or_404(id)
@@ -401,7 +446,7 @@ def recusar_agendamento(id):
     return redirect(url_for("agenda.index", data=booking.inicio.date()))
 
 
-@agenda_bp.route("/agendamentos/<int:id>/cancelar", methods=["POST"])
+@agenda_bp.route("/<int:id>/cancelar", methods=["POST"])
 @login_required
 def cancelar_agendamento(id):
     booking = AgendamentoLaboratorio.query.get_or_404(id)
@@ -421,7 +466,7 @@ def cancelar_agendamento(id):
     return redirect(url_for("agenda.index", data=request.form.get("data_retorno") or date.today()))
 
 
-@agenda_bp.route("/agendamentos/<int:id>/excluir", methods=["POST"])
+@agenda_bp.route("/<int:id>/excluir", methods=["POST"])
 @roles_required("admin", "tecnico")
 def excluir_agendamento(id):
     booking = AgendamentoLaboratorio.query.get_or_404(id)
@@ -513,8 +558,15 @@ def novo_recado():
         db.session.rollback()
         flash("Não foi possível publicar o recado.", "danger")
     else:
+        notify_general_support(
+            "recado",
+            "Novo recado publicado",
+            f"{recado.titulo} ficará visível até {recado.data_fim.strftime('%d/%m/%Y')}.",
+            url_for("agenda.recados"),
+        )
+        db.session.commit()
         flash("Recado publicado com sucesso.", "success")
-    return redirect(url_for("agenda.index", data=request.form.get("data_retorno") or date.today()))
+    return redirect(url_for("agenda.recados", data=request.form.get("data_retorno") or date.today()))
 
 
 @agenda_bp.route("/recados/<int:id>/excluir", methods=["POST"])
@@ -529,4 +581,16 @@ def excluir_recado(id):
         flash("Não foi possível excluir o recado.", "danger")
     else:
         flash("Recado excluído.", "success")
-    return redirect(url_for("agenda.index", data=request.form.get("data_retorno") or date.today()))
+    return redirect(url_for("agenda.recados", data=request.form.get("data_retorno") or date.today()))
+
+
+@agenda_bp.route("/recados")
+@roles_required("admin", "tecnico")
+def recados():
+    hoje = date.today()
+    recados_publicados = (
+        Recado.query.options(joinedload(Recado.autor))
+        .order_by(Recado.data_inicio.desc(), Recado.criado_em.desc())
+        .all()
+    )
+    return render_template("agenda/recados.html", recados=recados_publicados, hoje=hoje)

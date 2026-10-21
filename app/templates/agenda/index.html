@@ -1,15 +1,15 @@
 {% extends 'base.html' %}
-{% block title %}Agenda | Helpdesk Manager{% endblock %}
+{% block title %}Agendamentos | Helpdesk Manager{% endblock %}
 {% block content %}
 <section class="page-heading agenda-heading">
   <div>
     <span class="page-eyebrow">Organização do dia</span>
-    <h1>Agenda e laboratórios</h1>
+    <h1>Agendamentos e laboratórios</h1>
     <p>Reserve espaços, consulte os horários e acompanhe os recados da equipe.</p>
   </div>
   <div class="page-actions">
     <a class="btn btn-outline-secondary" href="{{ url_for('agendamento_laboratorios') }}">+ Solicitar laboratório</a>
-    {% if suporte %}<a class="btn btn-primary" href="#novo-recado">+ Publicar recado</a>{% endif %}
+    {% if suporte %}<a class="btn btn-primary" href="{{ url_for('agenda.recados') }}">Gerenciar recados</a>{% endif %}
   </div>
 </section>
 
@@ -167,7 +167,7 @@
 
   <aside class="col-xl-4">
     {% if suporte %}
-    <section class="agenda-panel mb-4">
+    <section class="agenda-panel mb-4" id="notificacoes">
       <div class="agenda-panel-header">
         <div><span class="page-eyebrow">Solicitações</span><h2>Pendentes de análise</h2></div>
         <span class="agenda-count">{{ solicitacoes_pendentes|length }}</span>
@@ -235,22 +235,6 @@
     </section>
 
     {% if suporte %}
-    <section class="agenda-panel mt-4" id="novo-recado">
-      <details class="agenda-disclosure" open>
-        <summary>Publicar novo recado</summary>
-        <form method="post" action="{{ url_for('agenda.novo_recado') }}" class="row g-3 pt-3">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <input type="hidden" name="data_retorno" value="{{ data_selecionada.isoformat() }}">
-          <div class="col-12"><label class="form-label" for="recadoTitulo">Título</label><input id="recadoTitulo" name="titulo" class="form-control" maxlength="150" required></div>
-          <div class="col-12"><label class="form-label" for="recadoMensagem">Mensagem</label><textarea id="recadoMensagem" name="mensagem" class="form-control" rows="4" required></textarea></div>
-          <div class="col-12"><label class="form-label" for="recadoPrioridade">Prioridade</label><select id="recadoPrioridade" name="prioridade" class="form-select"><option value="normal">Normal</option><option value="importante">Importante</option><option value="urgente">Urgente</option></select></div>
-          <div class="col-6"><label class="form-label" for="recadoInicio">De</label><input id="recadoInicio" name="data_inicio" type="date" class="form-control" value="{{ data_selecionada.isoformat() }}" required></div>
-          <div class="col-6"><label class="form-label" for="recadoFim">Até</label><input id="recadoFim" name="data_fim" type="date" class="form-control" value="{{ data_selecionada.isoformat() }}" required></div>
-          <div class="col-12"><button class="btn btn-primary w-100" type="submit">Publicar recado</button></div>
-        </form>
-      </details>
-    </section>
-
     <section class="agenda-panel mt-4">
       <details class="agenda-disclosure">
         <summary>Gerenciar laboratórios</summary>

@@ -11,11 +11,11 @@
 </section>
 
 <div class="row g-3 mb-4">
-  <div class="col-6 col-xl"><div class="card card-kpi"><span class="kpi-icon">◈</span><span class="kpi-label">Chamados totais</span><strong class="kpi-value">{{ total_chamados }}</strong><span class="kpi-accent"></span></div></div>
-  <div class="col-6 col-xl"><div class="card card-kpi"><span class="kpi-icon">◷</span><span class="kpi-label">Em atendimento</span><strong class="kpi-value">{{ abertos }}</strong><span class="kpi-accent accent-teal"></span></div></div>
-  <div class="col-6 col-xl"><div class="card card-kpi"><span class="kpi-icon">▣</span><span class="kpi-label">Máquinas</span><strong class="kpi-value">{{ maquinas }}</strong><span class="kpi-accent accent-purple"></span></div></div>
-  <div class="col-6 col-xl"><div class="card card-kpi"><span class="kpi-icon">▤</span><span class="kpi-label">Estoque baixo</span><strong class="kpi-value">{{ estoque_baixo }}</strong><span class="kpi-accent accent-warning"></span></div></div>
-  <div class="col-6 col-xl"><div class="card card-kpi"><span class="kpi-icon">⚙</span><span class="kpi-label">Manutenções</span><strong class="kpi-value">{{ manutencoes }}</strong><span class="kpi-accent accent-danger"></span></div></div>
+  <div class="col-6 col-xl"><a class="dashboard-card-link" href="{{ url_for('chamados.listar') }}"><div class="card card-kpi"><span class="kpi-icon">◈</span><span class="kpi-label">Chamados totais</span><strong class="kpi-value">{{ total_chamados }}</strong><span class="kpi-accent"></span></div></a></div>
+  <div class="col-6 col-xl"><a class="dashboard-card-link" href="{{ url_for('chamados.listar') }}"><div class="card card-kpi"><span class="kpi-icon">◷</span><span class="kpi-label">Em atendimento</span><strong class="kpi-value">{{ abertos }}</strong><span class="kpi-accent accent-teal"></span></div></a></div>
+  <div class="col-6 col-xl"><a class="dashboard-card-link" href="{{ url_for('maquinas.listar') }}"><div class="card card-kpi"><span class="kpi-icon">▣</span><span class="kpi-label">Máquinas</span><strong class="kpi-value">{{ maquinas }}</strong><span class="kpi-accent accent-purple"></span></div></a></div>
+  <div class="col-6 col-xl"><a class="dashboard-card-link" href="{{ url_for('estoque.listar') }}"><div class="card card-kpi"><span class="kpi-icon">▤</span><span class="kpi-label">Estoque baixo</span><strong class="kpi-value">{{ estoque_baixo }}</strong><span class="kpi-accent accent-warning"></span></div></a></div>
+  <div class="col-6 col-xl"><a class="dashboard-card-link" href="{{ url_for('manutencoes.listar') }}"><div class="card card-kpi"><span class="kpi-icon">⚙</span><span class="kpi-label">Manutenções</span><strong class="kpi-value">{{ manutencoes }}</strong><span class="kpi-accent accent-danger"></span></div></a></div>
 </div>
 
 <section class="row g-3">
@@ -28,8 +28,8 @@
   <div class="col-lg-7">
     <div class="agenda-panel h-100">
       <div class="agenda-panel-header">
-        <div><span class="page-eyebrow">Hoje</span><h2>Agenda de laboratórios</h2></div>
-        <a class="panel-link" href="{{ url_for('agenda.index') }}">Ver agenda completa →</a>
+        <div><span class="page-eyebrow">Hoje</span><h2>Agendamentos de laboratórios</h2></div>
+        <a class="panel-link" href="{{ url_for('agenda.index') }}">Ver Agendamentos →</a>
       </div>
       {% if agenda_hoje %}
       <div class="dashboard-schedule">
@@ -50,15 +50,16 @@
     <div class="agenda-panel h-100">
       <div class="agenda-panel-header">
         <div><span class="page-eyebrow">Mural</span><h2>Recados do dia</h2></div>
+        {% if current_user.perfil in ['admin', 'tecnico'] %}<a class="panel-link" href="{{ url_for('agenda.recados') }}">Gerenciar →</a>{% endif %}
       </div>
       {% if recados_hoje %}
       <div class="dashboard-notices">
         {% for recado in recados_hoje %}
-        <article class="priority-{{ recado.prioridade }}">
+        <a class="dashboard-notice-link" href="{{ url_for('agenda.recados') if current_user.perfil in ['admin', 'tecnico'] else url_for('agenda.index') }}"><article class="priority-{{ recado.prioridade }}">
           <span>{{ recado.prioridade|capitalize }}</span>
           <strong>{{ recado.titulo }}</strong>
           <p>{{ recado.mensagem }}</p>
-        </article>
+        </article></a>
         {% endfor %}
       </div>
       {% else %}

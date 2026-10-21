@@ -504,6 +504,25 @@ main > h2,
 .teacher-access-card b { font-size: 1.25rem; font-weight: 500; }
 .login-divider { align-items: center; color: var(--muted); display: flex; font-size: .78rem; gap: 10px; margin: 20px 0; }
 .login-divider::before, .login-divider::after { background: var(--line); content: ""; height: 1px; flex: 1; }
+.dashboard-card-link { color: inherit; display: block; text-decoration: none; }
+.dashboard-card-link .card-kpi { transition: transform .2s ease, box-shadow .2s ease; }
+.dashboard-card-link:hover .card-kpi { box-shadow: var(--shadow-md); transform: translateY(-3px); }
+.dashboard-notice-link { color: inherit; display: block; text-decoration: none; }
+.dashboard-notice-link article { transition: transform .2s ease; }
+.dashboard-notice-link:hover article { transform: translateX(3px); }
+.professor-availability .lab-slot { min-height: 125px; }
+.professor-booking { padding-top: 16px; }
+.notification-bell { align-items: center; background: #eef2ff; border-radius: 10px; color: var(--primary); display: inline-flex; font-size: 1.15rem; height: 34px; justify-content: center; margin-left: auto; position: relative; text-decoration: none; width: 34px; }
+.notification-bell:hover { background: #dfe8ff; color: var(--primary); }
+.notification-bell b { align-items: center; background: var(--danger); border: 2px solid #fff; border-radius: 50%; color: #fff; display: flex; font-size: .58rem; height: 17px; justify-content: center; min-width: 17px; position: absolute; right: -6px; top: -6px; }
+.system-notification { align-items: center; border-bottom: 1px solid var(--line); display: flex; gap: 14px; padding: 16px 0; }
+.system-notification:first-child { padding-top: 0; }
+.system-notification:last-child { border-bottom: 0; padding-bottom: 0; }
+.system-notification.is-unread { background: #f5f8ff; margin: 0 -12px; padding-left: 12px; padding-right: 12px; }
+.system-notification-icon { align-items: center; background: #e4ebff; border-radius: 10px; color: var(--primary); display: inline-flex; font-size: 1.1rem; height: 38px; justify-content: center; width: 38px; }
+.system-notification > div:nth-child(2) { display: grid; flex: 1; gap: 3px; }
+.system-notification small, .system-notification p { color: var(--muted); font-size: .75rem; margin: 0; }
+.system-notification-actions { align-items: center; display: flex; gap: 7px; }
 
 @media (max-width: 991.98px) {
   .app-sidebar {

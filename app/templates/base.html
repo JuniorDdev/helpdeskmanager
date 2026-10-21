@@ -13,6 +13,7 @@
   <header class="mobile-bar">
     <button class="mobile-menu-toggle" id="menuToggle" type="button" aria-label="Abrir menu" aria-controls="appSidebar" aria-expanded="false">☰</button>
     <div class="mobile-brand"><span class="brand-mark">HD</span><strong>Helpdesk Manager</strong></div>
+    {% if agenda_notification_count %}<a class="notification-bell" href="{{ url_for('dashboard.notificacoes') }}" aria-label="{{ agenda_notification_count }} notificações">🔔<b>{{ agenda_notification_count }}</b></a>{% endif %}
     <span class="profile-avatar">{{ current_user.nome[:1]|upper }}</span>
   </header>
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
@@ -26,6 +27,7 @@
         <div class="profile-chip">
           <span class="profile-avatar">{{ current_user.nome[:1]|upper }}</span>
           <span class="profile-copy"><strong>{{ current_user.nome }}</strong><small>{{ current_user.perfil|capitalize }}</small></span>
+          {% if agenda_notification_count %}<a class="notification-bell" href="{{ url_for('dashboard.notificacoes') }}" aria-label="{{ agenda_notification_count }} notificações">🔔<b>{{ agenda_notification_count }}</b></a>{% endif %}
         </div>
         <div class="nav-label">Visão geral</div>
         <nav class="sidebar-nav" aria-label="Navegação principal">
@@ -34,7 +36,7 @@
           {% else %}
           <a class="sidebar-link" href="{{ url_for('dashboard.index') }}"><span class="nav-icon">⌂</span><span>Dashboard</span></a>
           <a class="sidebar-link" href="{{ url_for('chamados.listar') }}"><span class="nav-icon">◈</span><span>Chamados</span></a>
-          <a class="sidebar-link" href="{{ url_for('agenda.index') }}"><span class="nav-icon">▦</span><span>Agenda</span></a>
+          <a class="sidebar-link" href="{{ url_for('agenda.index') }}"><span class="nav-icon">▦</span><span>Agendamentos</span></a>
           {% if current_user.perfil in ['admin', 'tecnico'] %}
           <div class="nav-label mt-3">Ativos e suporte</div>
           <a class="sidebar-link" href="{{ url_for('maquinas.listar') }}"><span class="nav-icon">▣</span><span>Máquinas</span></a>
@@ -42,6 +44,7 @@
           <a class="sidebar-link" href="{{ url_for('conferencias.index') }}"><span class="nav-icon">◎</span><span>Conferências</span></a>
           <a class="sidebar-link" href="{{ url_for('movimentacoes.listar') }}"><span class="nav-icon">⇄</span><span>Movimentações</span></a>
           <a class="sidebar-link" href="{{ url_for('manutencoes.listar') }}"><span class="nav-icon">⚙</span><span>Manutenções</span></a>
+          <a class="sidebar-link" href="{{ url_for('agenda.recados') }}"><span class="nav-icon">☼</span><span>Recados</span></a>
           {% endif %}
           {% if current_user.perfil in ['admin', 'almoxarife', 'tecnico'] %}
           <div class="nav-label mt-3">Recursos</div>

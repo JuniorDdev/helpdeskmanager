@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}Notificações | Helpdesk Manager{% endblock %}
+{% block content %}
+<section class="page-heading"><div><span class="page-eyebrow">Central da operação</span><h1>Notificações</h1><p>Solicitações e comunicados que precisam da atenção da equipe.</p></div><a class="btn btn-outline-secondary" href="{{ url_for('dashboard.index') }}">Voltar ao Dashboard</a></section>
+<section class="agenda-panel notification-center">
+  {% for notificacao in notificacoes %}
+  <article class="system-notification {{ 'is-unread' if not notificacao.lida_em else '' }}">
+    <span class="system-notification-icon">{{ '▦' if notificacao.tipo == 'agendamento' else ('◈' if notificacao.tipo == 'chamado' else '☼') }}</span>
+    <div><small>{{ notificacao.tipo|capitalize }} · {{ notificacao.criado_em.strftime('%d/%m/%Y às %H:%M') }}</small><strong>{{ notificacao.titulo }}</strong><p>{{ notificacao.mensagem }}</p></div>
+    <div class="system-notification-actions"><a class="btn btn-sm btn-outline-primary" href="{{ notificacao.destino }}">Abrir</a>{% if not notificacao.lida_em %}<form method="post" action="{{ url_for('dashboard.marcar_notificacao_lida', id=notificacao.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-light" type="submit">Marcar como lida</button></form>{% endif %}</div>
+  </article>
+  {% else %}
+  <div class="agenda-empty"><span>✓</span><strong>Nenhuma notificação</strong><p>As novas solicitações e recados aparecerão aqui.</p></div>
+  {% endfor %}
+</section>
+{% endblock %}

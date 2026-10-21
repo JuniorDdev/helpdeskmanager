@@ -8,6 +8,7 @@ from app.models import (
     HistoricoAgendamentoLaboratorio,
     Laboratorio,
     NotificacaoAgenda,
+    NotificacaoSistema,
     Recado,
     Usuario,
 )
@@ -87,15 +88,15 @@ class AgendaRoutesTestCase(unittest.TestCase):
             "turno": "manha",
             "data_retorno": "2030-03-15",
         }
-        response = self.client.post("/agenda/agendamentos/novo", data=primeira)
+        response = self.client.post("/agendamentos/novo", data=primeira)
         self.assertEqual(response.status_code, 302)
 
         segunda = dict(primeira, titulo="Aula 9B", professor_matricula="MAT-002")
-        response = self.client.post("/agenda/agendamentos/novo", data=segunda)
+        response = self.client.post("/agendamentos/novo", data=segunda)
         self.assertEqual(response.status_code, 302)
 
         outro_turno = dict(primeira, titulo="Aula 9C", turno="tarde")
-        self.client.post("/agenda/agendamentos/novo", data=outro_turno)
+        self.client.post("/agendamentos/novo", data=outro_turno)
         with self.app.app_context():
             self.assertEqual(AgendamentoLaboratorio.query.count(), 3)
             primeira_reserva = AgendamentoLaboratorio.query.order_by(AgendamentoLaboratorio.id).first()
@@ -104,6 +105,7 @@ class AgendaRoutesTestCase(unittest.TestCase):
             self.assertEqual(primeira_reserva.status, "solicitado")
             self.assertEqual(HistoricoAgendamentoLaboratorio.query.count(), 3)
             self.assertEqual(NotificacaoAgenda.query.count(), 3)
+            self.assertEqual(NotificacaoSistema.query.count(), 3)
 
     def test_confirma_primeira_solicitacao_e_respeita_capacidade(self):
         with self.app.app_context():
@@ -120,17 +122,17 @@ class AgendaRoutesTestCase(unittest.TestCase):
             "data_reserva": "2030-03-15",
             "turno": "manha",
         }
-        self.client.post("/agenda/agendamentos/novo", data=dados)
+        self.client.post("/agendamentos/novo", data=dados)
         dados_2 = dict(dados, titulo="Aula posterior", professor_matricula="MAT-002")
-        self.client.post("/agenda/agendamentos/novo", data=dados_2)
+        self.client.post("/agendamentos/novo", data=dados_2)
         with self.app.app_context():
             pendentes = AgendamentoLaboratorio.query.order_by(AgendamentoLaboratorio.id).all()
             primeiro_id, segundo_id = pendentes[0].id, pendentes[1].id
 
         self.login(self.admin_id)
-        response = self.client.post(f"/agenda/agendamentos/{segundo_id}/confirmar", follow_redirects=True)
+        response = self.client.post(f"/agendamentos/{segundo_id}/confirmar", follow_redirects=True)
         self.assertIn("chegou antes".encode(), response.data)
-        response = self.client.post(f"/agenda/agendamentos/{primeiro_id}/confirmar", follow_redirects=True)
+        response = self.client.post(f"/agendamentos/{primeiro_id}/confirmar", follow_redirects=True)
         self.assertIn("confirmado:".encode(), response.data)
         with self.app.app_context():
             self.assertEqual(db.session.get(AgendamentoLaboratorio, primeiro_id).status, "agendado")
@@ -138,7 +140,7 @@ class AgendaRoutesTestCase(unittest.TestCase):
 
         self.login(self.usuario_id)
         dados_excesso = dict(dados, data_reserva="2030-03-16", quantidade_alunos="11")
-        response = self.client.post("/agenda/agendamentos/novo", data=dados_excesso, follow_redirects=True)
+        response = self.client.post("/agendamentos/novo", data=dados_excesso, follow_redirects=True)
         self.assertIn("excede a capacidade".encode(), response.data)
 
     def test_recado_so_pode_ser_publicado_pelo_suporte(self):
@@ -151,15 +153,15 @@ class AgendaRoutesTestCase(unittest.TestCase):
             "data_retorno": "2030-03-15",
         }
         self.login(self.usuario_id)
-        self.assertEqual(self.client.post("/agenda/recados/novo", data=dados).status_code, 403)
+        self.assertEqual(self.client.post("/agendamentos/recados/novo", data=dados).status_code, 403)
 
         self.login(self.admin_id)
-        self.assertEqual(self.client.post("/agenda/recados/novo", data=dados).status_code, 302)
+        self.assertEqual(self.client.post("/agendamentos/recados/novo", data=dados).status_code, 302)
         with self.app.app_context():
             self.assertEqual(Recado.query.count(), 1)
 
         self.login(self.usuario_id)
-        response = self.client.get("/agenda/?data=2030-03-15")
+        response = self.client.get("/agendamentos/?data=2030-03-15")
         self.assertIn("Manutenção da rede".encode(), response.data)
 
     def test_proprietario_e_suporte_podem_cancelar_reserva(self):
@@ -181,12 +183,12 @@ class AgendaRoutesTestCase(unittest.TestCase):
 
         self.login(self.usuario_id)
         self.assertEqual(
-            self.client.post(f"/agenda/agendamentos/{booking_id}/cancelar").status_code, 403
+            self.client.post(f"/agendamentos/{booking_id}/cancelar").status_code, 403
         )
 
         self.login(self.admin_id)
         self.assertEqual(
-            self.client.post(f"/agenda/agendamentos/{booking_id}/cancelar").status_code, 302
+            self.client.post(f"/agendamentos/{booking_id}/cancelar").status_code, 302
         )
         with self.app.app_context():
             self.assertEqual(db.session.get(AgendamentoLaboratorio, booking_id).status, "cancelado")
@@ -195,18 +197,19 @@ class AgendaRoutesTestCase(unittest.TestCase):
     def test_dashboard_e_agenda_renderizam(self):
         self.login(self.usuario_id)
         self.assertEqual(self.client.get("/").status_code, 200)
-        response = self.client.get("/agenda/")
+        response = self.client.get("/agendamentos/")
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Agenda e laboratórios".encode(), response.data)
+        self.assertIn("Agendamentos e laboratórios".encode(), response.data)
         self.assertIn("Disponibilidade por turno".encode(), response.data)
         self.assertIn(b"Lab 05", response.data)
         self.assertEqual(self.client.get("/agendamento-laboratorios").status_code, 200)
 
         self.login(self.admin_id)
-        response = self.client.get("/agenda/")
+        response = self.client.get("/agendamentos/")
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Publicar novo recado".encode(), response.data)
+        self.assertIn("Gerenciar recados".encode(), response.data)
         self.assertIn("Gerenciar laboratórios".encode(), response.data)
+        self.assertEqual(self.client.get("/agendamentos/recados").status_code, 200)
 
     def test_professor_acessa_somente_painel_de_agendamento(self):
         self.login(self.professor_id)
@@ -216,6 +219,28 @@ class AgendaRoutesTestCase(unittest.TestCase):
         self.assertIn(b"0-000000", response.data)
         self.assertEqual(self.client.get("/").status_code, 403)
         self.assertEqual(self.client.get("/chamados/").status_code, 403)
+
+    def test_professor_ve_disponibilidade_sem_dados_de_outros(self):
+        with self.app.app_context():
+            db.session.add(
+                AgendamentoLaboratorio(
+                    laboratorio_id=self.laboratorio_id,
+                    usuario_id=self.outro_id,
+                    titulo="Aula reservada",
+                    professor_nome="Outro Usuário",
+                    professor_matricula="2-345678",
+                    quantidade_alunos=10,
+                    inicio=datetime(2030, 3, 15, 8, 0),
+                    fim=datetime(2030, 3, 15, 12, 0),
+                    status="agendado",
+                )
+            )
+            db.session.commit()
+        self.login(self.professor_id)
+        response = self.client.get("/agendamento-laboratorios?data=2030-03-15")
+        self.assertIn(b"Hor\xc3\xa1rio j\xc3\xa1 reservado", response.data)
+        self.assertNotIn(b"Outro Usu\xc3\xa1rio", response.data)
+        self.assertIn(b"lab=2", response.data)
 
     def test_professor_entra_com_matricula_e_senha(self):
         with self.app.app_context():

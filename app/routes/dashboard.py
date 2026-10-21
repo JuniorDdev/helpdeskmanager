@@ -1,10 +1,11 @@
 from datetime import date, datetime, time, timedelta
 
-from flask import Blueprint, jsonify, render_template
+from flask import Blueprint, abort, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import case, func
 
-from app.models import AgendamentoLaboratorio, Chamado, Estoque, Manutencao, Maquina, Recado
+from app.extensions import db
+from app.models import AgendamentoLaboratorio, Chamado, Estoque, Manutencao, Maquina, NotificacaoSistema, Recado
 from app.utils.authz import SUPPORT_ROLES
 
 
@@ -65,6 +66,9 @@ def index():
         .limit(3)
         .all()
     )
+    agendamentos_pendentes = 0
+    if current_user.perfil in SUPPORT_ROLES:
+        agendamentos_pendentes = AgendamentoLaboratorio.query.filter_by(status="solicitado").count()
     return render_template(
         "dashboard/index.html",
         total_chamados=total_chamados,
@@ -74,7 +78,34 @@ def index():
         manutencoes=manutencoes,
         agenda_hoje=agenda_hoje,
         recados_hoje=recados_hoje,
+        agendamentos_pendentes=agendamentos_pendentes,
     )
+
+
+@dashboard_bp.route("/notificacoes")
+@login_required
+def notificacoes():
+    if current_user.perfil not in SUPPORT_ROLES:
+        abort(403)
+    notificacoes_usuario = (
+        NotificacaoSistema.query.filter_by(usuario_id=current_user.id)
+        .order_by(NotificacaoSistema.criado_em.desc())
+        .limit(100)
+        .all()
+    )
+    return render_template("dashboard/notificacoes.html", notificacoes=notificacoes_usuario)
+
+
+@dashboard_bp.route("/notificacoes/<int:id>/ler", methods=["POST"])
+@login_required
+def marcar_notificacao_lida(id):
+    notificacao = NotificacaoSistema.query.get_or_404(id)
+    if current_user.perfil not in SUPPORT_ROLES or notificacao.usuario_id != current_user.id:
+        abort(403)
+    if not notificacao.lida_em:
+        notificacao.lida_em = datetime.utcnow()
+        db.session.commit()
+    return redirect(request.form.get("retorno") or url_for("dashboard.notificacoes"))
 
 
 @dashboard_bp.route("/api/dashboard")

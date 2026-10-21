@@ -12,6 +12,7 @@ from sqlalchemy.orm import joinedload
 from app.extensions import db
 from app.models import Chamado, HistoricoChamado, Maquina, Setor, SlaRegra, Usuario
 from app.services.sla import calculate_sla
+from app.services.notifications import notify_support
 from app.utils.authz import SUPPORT_ROLES, can_manage_ticket, has_role
 from app.utils.export import excel_safe
 from app.utils.validation import ValidationError, choice, optional_id, optional_text, required_text
@@ -115,6 +116,12 @@ def novo():
                     acao="Abertura",
                     descricao="Chamado aberto.",
                 )
+            )
+            notify_support(
+                "chamado",
+                "Novo chamado aberto",
+                f"{chamado.titulo} · prioridade {chamado.prioridade}.",
+                url_for("chamados.editar", id=chamado.id),
             )
             db.session.commit()
         except ValidationError as error:

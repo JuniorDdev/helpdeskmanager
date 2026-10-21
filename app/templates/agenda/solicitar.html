@@ -4,21 +4,53 @@
 <section class="page-heading">
   <div>
     <span class="page-eyebrow">Agendamento de laboratórios</span>
-    <h1>Solicitar laboratório</h1>
-    <p>Informe os dados da aula. A solicitação será analisada pela equipe responsável na ordem de chegada.</p>
+    <h1>Agendamentos de laboratório</h1>
+    <p>Escolha um laboratório disponível por data e turno. A solicitação será analisada pela equipe responsável na ordem de chegada.</p>
   </div>
   {% if current_user.perfil != 'professor' %}<a class="btn btn-outline-secondary" href="{{ url_for('agenda.index') }}">Ver painel de disponibilidade</a>{% endif %}
 </section>
-<div class="form-card agenda-form-card">
+{% if current_user.perfil == 'professor' %}
+<section class="agenda-panel professor-availability mb-4">
+  <div class="agenda-panel-header">
+    <div><span class="page-eyebrow">Disponibilidade</span><h2>Selecione um laboratório e turno</h2></div>
+    <span class="agenda-count">{{ data_selecionada.strftime('%d/%m/%Y') }}</span>
+  </div>
+  <div class="agenda-datebar professor-datebar">
+    <a class="date-nav" href="{{ url_for('agendamento_laboratorios', data=data_anterior.isoformat()) }}" aria-label="Dia anterior">‹</a>
+    <form method="get" class="agenda-date-form"><label class="visually-hidden" for="dataDisponibilidade">Escolher data</label><input id="dataDisponibilidade" name="data" type="date" min="{{ hoje.isoformat() }}" value="{{ data_selecionada.isoformat() }}" class="form-control"><button class="btn btn-outline-primary" type="submit">Ver data</button></form>
+    <a class="date-nav" href="{{ url_for('agendamento_laboratorios', data=proxima_data.isoformat()) }}" aria-label="Próximo dia">›</a>
+  </div>
+  <div class="shift-map professor-shift-map">
+    {% for turno in mapa_turnos %}
+    <section class="shift-section">
+      <header class="shift-header"><span class="shift-icon">{{ '☀' if turno.codigo == 'manha' else ('◐' if turno.codigo == 'tarde' else '☾') }}</span><div><strong>{{ turno.label }}</strong><small>{{ turno.periodo }}</small></div></header>
+      <div class="lab-slot-grid">
+        {% for slot in turno.slots %}
+        <article class="lab-slot {{ 'is-occupied' if slot.ocupado else 'is-free' }}">
+          <div class="lab-slot-head"><strong>{{ slot.laboratorio.nome }}</strong><span>{{ 'Agendado' if slot.ocupado else 'Disponível' }}</span></div>
+          {% if slot.ocupado %}
+          <div class="slot-booking professor-booking"><small>Horário já reservado</small><small>Sem edição disponível</small></div>
+          {% else %}
+          <a class="slot-reserve-link" href="{{ url_for('agendamento_laboratorios', data=data_selecionada.isoformat(), lab=slot.laboratorio.id, turno=turno.codigo) }}#formulario-agendamento">Selecionar este horário</a>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+<div class="form-card agenda-form-card" id="formulario-agendamento">
   <form method="post" action="{{ url_for('agenda.novo_agendamento') }}" class="row g-3">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input type="hidden" name="data_retorno" value="{{ hoje.isoformat() }}">
+    <input type="hidden" name="data_retorno" value="{{ data_selecionada.isoformat() }}">
     <div class="col-md-6"><label class="form-label" for="nome">Nome do professor</label><input id="nome" name="professor_nome" class="form-control" value="{{ professor.nome }}" maxlength="120" required></div>
     <div class="col-md-6"><label class="form-label" for="matricula">Matrícula</label><input id="matricula" name="professor_matricula" class="form-control" value="{{ professor.matricula or '' }}" maxlength="60" required></div>
     <div class="col-12"><label class="form-label" for="titulo">Disciplina ou atividade</label><input id="titulo" name="titulo" class="form-control" maxlength="150" required></div>
-    <div class="col-md-4"><label class="form-label" for="data">Data</label><input id="data" name="data_reserva" type="date" class="form-control" min="{{ hoje.isoformat() }}" required></div>
-    <div class="col-md-4"><label class="form-label" for="turno">Turno</label><select id="turno" name="turno" class="form-select" required>{% for codigo, turno in turnos.items() %}<option value="{{ codigo }}">{{ turno.label }} · {{ turno.inicio.strftime('%H:%M') }}–{{ turno.fim.strftime('%H:%M') }}</option>{% endfor %}</select></div>
-    <div class="col-md-4"><label class="form-label" for="laboratorio">Laboratório</label><select id="laboratorio" name="laboratorio_id" class="form-select" required>{% for laboratorio in laboratorios %}<option value="{{ laboratorio.id }}">{{ laboratorio.nome }}{% if laboratorio.capacidade %} ({{ laboratorio.capacidade }} computadores){% endif %}</option>{% endfor %}</select></div>
+    <div class="col-md-4"><label class="form-label" for="data">Data</label><input id="data" name="data_reserva" type="date" class="form-control" min="{{ hoje.isoformat() }}" value="{{ data_selecionada.isoformat() }}" required></div>
+    <div class="col-md-4"><label class="form-label" for="turno">Turno</label><select id="turno" name="turno" class="form-select" required>{% for codigo, turno in turnos.items() %}<option value="{{ codigo }}" {% if codigo == preselected_turno %}selected{% endif %}>{{ turno.label }} · {{ turno.inicio.strftime('%H:%M') }}–{{ turno.fim.strftime('%H:%M') }}</option>{% endfor %}</select></div>
+    <div class="col-md-4"><label class="form-label" for="laboratorio">Laboratório</label><select id="laboratorio" name="laboratorio_id" class="form-select" required>{% for laboratorio in laboratorios %}<option value="{{ laboratorio.id }}" {% if laboratorio.id == preselected_lab_id %}selected{% endif %}>{{ laboratorio.nome }}{% if laboratorio.capacidade %} ({{ laboratorio.capacidade }} computadores){% endif %}</option>{% endfor %}</select></div>
     <div class="col-md-4"><label class="form-label" for="alunos">Quantidade de alunos</label><input id="alunos" name="quantidade_alunos" type="number" min="1" class="form-control" required></div>
     <div class="col-12"><label class="form-label" for="observacoes">Observações</label><textarea id="observacoes" name="finalidade" class="form-control" rows="3" placeholder="Equipamentos necessários ou outras informações."></textarea></div>
     <div class="col-12"><button class="btn btn-primary" type="submit">Enviar solicitação</button></div>

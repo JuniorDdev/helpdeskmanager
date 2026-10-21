@@ -37,6 +37,18 @@ def create_app(config_overrides=None):
             return None
         return usuario if usuario and usuario.ativo else None
 
+    @app.context_processor
+    def agenda_notification_context():
+        if not current_user.is_authenticated or current_user.perfil not in {"admin", "tecnico"}:
+            return {"agenda_notification_count": 0}
+        from app.models import NotificacaoSistema
+
+        return {
+            "agenda_notification_count": NotificacaoSistema.query.filter_by(
+                usuario_id=current_user.id, lida_em=None
+            ).count()
+        }
+
     from app.routes.auth import auth_bp
     from app.routes.agenda import agenda_bp, solicitar_professor
     from app.routes.chamados import chamados_bp
@@ -54,6 +66,10 @@ def create_app(config_overrides=None):
         endpoint="agendamento_laboratorios",
         view_func=solicitar_professor,
     )
+
+    @app.get("/agenda/")
+    def legacy_agenda():
+        return redirect(url_for("agenda.index", **request.args))
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(chamados_bp)
     app.register_blueprint(maquinas_bp)
