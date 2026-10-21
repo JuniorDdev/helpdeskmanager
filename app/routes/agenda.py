@@ -1,7 +1,12 @@
 from datetime import date, datetime, time, timedelta
+from io import BytesIO
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.pdfgen import canvas
 from sqlalchemy import case
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload
@@ -25,6 +30,7 @@ from app.utils.validation import (
     optional_text,
     required_text,
 )
+from app.utils.export import excel_safe
 
 
 agenda_bp = Blueprint("agenda", __name__, url_prefix="/agendamentos")
@@ -42,6 +48,46 @@ STATUS_LABELS = {
     "cancelado": "Cancelado",
     "excluido": "Excluído",
 }
+
+
+def report_period():
+    """Retorna o intervalo solicitado para os relatórios de agendamento."""
+    periodo = (request.args.get("periodo") or "dia").strip().lower()
+    if periodo not in {"dia", "mes", "ano"}:
+        raise ValidationError("Período de relatório inválido.")
+    referencia = parse_date_value(request.args.get("data") or date.today().isoformat(), "Data")
+    if periodo == "dia":
+        inicio = referencia
+        fim = referencia + timedelta(days=1)
+        rotulo = referencia.strftime("%d-%m-%Y")
+        titulo = f"Agendamentos de {referencia.strftime('%d/%m/%Y')}"
+    elif periodo == "mes":
+        inicio = referencia.replace(day=1)
+        fim = (inicio.replace(day=28) + timedelta(days=4)).replace(day=1)
+        rotulo = inicio.strftime("%m-%Y")
+        titulo = f"Agendamentos de {inicio.strftime('%m/%Y')}"
+    else:
+        inicio = referencia.replace(month=1, day=1)
+        fim = inicio.replace(year=inicio.year + 1)
+        rotulo = str(inicio.year)
+        titulo = f"Agendamentos de {inicio.year}"
+    return periodo, inicio, fim, rotulo, titulo
+
+
+def report_bookings(inicio, fim):
+    return (
+        AgendamentoLaboratorio.query.options(
+            joinedload(AgendamentoLaboratorio.laboratorio),
+            joinedload(AgendamentoLaboratorio.usuario),
+        )
+        .filter(
+            AgendamentoLaboratorio.status != "excluido",
+            AgendamentoLaboratorio.inicio >= datetime.combine(inicio, time.min),
+            AgendamentoLaboratorio.inicio < datetime.combine(fim, time.min),
+        )
+        .order_by(AgendamentoLaboratorio.inicio, AgendamentoLaboratorio.laboratorio_id)
+        .all()
+    )
 
 
 def parse_date_value(value, label):
@@ -251,6 +297,133 @@ def index():
         notificacoes=notificacoes,
         solicitacoes_pendentes=solicitacoes_pendentes,
     )
+
+
+@agenda_bp.route("/relatorios")
+@roles_required("admin", "tecnico")
+def relatorios():
+    periodo = (request.args.get("periodo") or "dia").strip().lower()
+    if periodo not in {"dia", "mes", "ano"}:
+        periodo = "dia"
+    try:
+        referencia = parse_date_value(request.args.get("data") or date.today().isoformat(), "Data")
+    except ValidationError:
+        referencia = date.today()
+    return render_template("agenda/relatorios.html", periodo=periodo, referencia=referencia)
+
+
+@agenda_bp.route("/relatorios/excel")
+@roles_required("admin", "tecnico")
+def relatorio_excel():
+    try:
+        _periodo, inicio, fim, rotulo, titulo = report_period()
+    except ValidationError as error:
+        flash(str(error), "danger")
+        return redirect(url_for("agenda.relatorios"))
+
+    agendamentos = report_bookings(inicio, fim)
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Agendamentos"
+    worksheet.append([titulo])
+    worksheet.append([f"Período: {inicio.strftime('%d/%m/%Y')} a {(fim - timedelta(days=1)).strftime('%d/%m/%Y')}"])
+    worksheet.append([])
+    headers = [
+        "Protocolo", "Data", "Turno", "Laboratório", "Professor", "Matrícula",
+        "Alunos", "Atividade", "Status", "Solicitado em", "Confirmado em",
+    ]
+    worksheet.append(headers)
+    for cell in worksheet[1]:
+        cell.font = Font(bold=True, size=14, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor="1F3B70")
+    for cell in worksheet[4]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor="4169E1")
+    for booking in agendamentos:
+        worksheet.append(
+            [
+                booking.protocolo,
+                booking.inicio.date(),
+                booking.turno_label,
+                excel_safe(booking.laboratorio.nome),
+                excel_safe(booking.professor_nome or booking.usuario.nome),
+                excel_safe(booking.professor_matricula),
+                booking.quantidade_alunos,
+                excel_safe(booking.titulo),
+                STATUS_LABELS.get(booking.status, booking.status),
+                booking.criado_em.strftime("%d/%m/%Y %H:%M") if booking.criado_em else "",
+                booking.confirmado_em.strftime("%d/%m/%Y %H:%M") if booking.confirmado_em else "",
+            ]
+        )
+    worksheet.freeze_panes = "A5"
+    worksheet.auto_filter.ref = f"A4:K{max(4, worksheet.max_row)}"
+    for cell in worksheet["B"][4:]:
+        cell.number_format = "dd/mm/yyyy"
+    widths = [16, 13, 12, 16, 28, 16, 10, 40, 16, 20, 20]
+    for column, width in enumerate(widths, start=1):
+        worksheet.column_dimensions[chr(64 + column)].width = width
+
+    output = BytesIO()
+    workbook.save(output)
+    output.seek(0)
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=f"agendamentos_{rotulo}.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+
+@agenda_bp.route("/relatorios/pdf")
+@roles_required("admin", "tecnico")
+def relatorio_pdf():
+    try:
+        _periodo, inicio, fim, rotulo, titulo = report_period()
+    except ValidationError as error:
+        flash(str(error), "danger")
+        return redirect(url_for("agenda.relatorios"))
+
+    agendamentos = report_bookings(inicio, fim)
+    output = BytesIO()
+    largura, altura = landscape(A4)
+    pdf = canvas.Canvas(output, pagesize=landscape(A4))
+
+    def cabecalho():
+        y_pos = altura - 34
+        pdf.setFont("Helvetica-Bold", 14)
+        pdf.drawString(28, y_pos, titulo)
+        pdf.setFont("Helvetica", 9)
+        pdf.drawString(28, y_pos - 15, f"Período: {inicio.strftime('%d/%m/%Y')} a {(fim - timedelta(days=1)).strftime('%d/%m/%Y')}")
+        y_pos -= 34
+        pdf.setFont("Helvetica-Bold", 8)
+        pdf.drawString(28, y_pos, "Data / turno")
+        pdf.drawString(105, y_pos, "Laboratório")
+        pdf.drawString(180, y_pos, "Professor")
+        pdf.drawString(350, y_pos, "Atividade")
+        pdf.drawString(600, y_pos, "Alunos")
+        pdf.drawString(652, y_pos, "Status")
+        return y_pos - 13
+
+    y = cabecalho()
+    pdf.setFont("Helvetica", 8)
+    for booking in agendamentos:
+        if y < 34:
+            pdf.showPage()
+            y = cabecalho()
+            pdf.setFont("Helvetica", 8)
+        data_turno = f"{booking.inicio.strftime('%d/%m/%Y')}\n{booking.turno_label}"
+        pdf.drawString(28, y, data_turno.replace("\n", " "))
+        pdf.drawString(105, y, booking.laboratorio.nome[:13])
+        pdf.drawString(180, y, (booking.professor_nome or booking.usuario.nome)[:29])
+        pdf.drawString(350, y, booking.titulo[:42])
+        pdf.drawRightString(630, y, str(booking.quantidade_alunos))
+        pdf.drawString(652, y, STATUS_LABELS.get(booking.status, booking.status)[:15])
+        y -= 14
+    if not agendamentos:
+        pdf.drawString(28, y, "Nenhum agendamento encontrado para o período.")
+    pdf.save()
+    output.seek(0)
+    return send_file(output, as_attachment=True, download_name=f"agendamentos_{rotulo}.pdf", mimetype="application/pdf")
 
 
 @agenda_bp.route("/solicitar")

@@ -107,6 +107,35 @@ class AgendaRoutesTestCase(unittest.TestCase):
             self.assertEqual(NotificacaoAgenda.query.count(), 3)
             self.assertEqual(NotificacaoSistema.query.count(), 3)
 
+    def test_relatorios_de_agendamentos_em_excel_e_pdf(self):
+        with self.app.app_context():
+            agendamento = AgendamentoLaboratorio(
+                laboratorio_id=self.laboratorio_id,
+                usuario_id=self.usuario_id,
+                professor_nome="Usuário Teste",
+                professor_matricula="0-000000",
+                quantidade_alunos=18,
+                titulo="Aula de programação",
+                inicio=datetime(2030, 3, 15, 8, 0),
+                fim=datetime(2030, 3, 15, 12, 0),
+                status="agendado",
+            )
+            db.session.add(agendamento)
+            db.session.commit()
+        self.login(self.admin_id)
+
+        page = self.client.get("/agendamentos/relatorios?periodo=mes&data=2030-03-15")
+        excel = self.client.get("/agendamentos/relatorios/excel?periodo=mes&data=2030-03-15")
+        pdf = self.client.get("/agendamentos/relatorios/pdf?periodo=ano&data=2030-03-15")
+
+        self.assertEqual(page.status_code, 200)
+        self.assertEqual(excel.status_code, 200)
+        self.assertIn("agendamentos_03-2030.xlsx", excel.headers["Content-Disposition"])
+        self.assertTrue(excel.data.startswith(b"PK"))
+        self.assertEqual(pdf.status_code, 200)
+        self.assertIn("agendamentos_2030.pdf", pdf.headers["Content-Disposition"])
+        self.assertTrue(pdf.data.startswith(b"%PDF"))
+
     def test_confirma_primeira_solicitacao_e_respeita_capacidade(self):
         with self.app.app_context():
             laboratorio = db.session.get(Laboratorio, self.laboratorio_id)
@@ -262,8 +291,8 @@ class AgendaRoutesTestCase(unittest.TestCase):
                 "nome": "Novo Professor",
                 "email": "novo.professor@teste.local",
                 "matricula": "1-234567",
-                "senha": "senha-professor-123",
-                "confirmacao_senha": "senha-professor-123",
+                "senha": "senha6",
+                "confirmacao_senha": "senha6",
             },
         )
         self.assertEqual(response.status_code, 302)

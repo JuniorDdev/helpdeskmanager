@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Relatórios de agendamentos | Helpdesk Manager{% endblock %}
+{% block content %}
+<section class="page-heading agenda-heading">
+  <div>
+    <span class="page-eyebrow">Agendamentos</span>
+    <h1>Relatórios de agendamentos</h1>
+    <p>Exporte as reservas por dia, mês ou ano em Excel e PDF.</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-outline-secondary" href="{{ url_for('agenda.index') }}">Voltar para agendamentos</a>
+  </div>
+</section>
+
+<section class="agenda-panel col-lg-8">
+  <form method="get" class="row g-3" id="filtroRelatorio">
+    <div class="col-md-5">
+      <label class="form-label" for="periodoRelatorio">Período</label>
+      <select id="periodoRelatorio" name="periodo" class="form-select">
+        <option value="dia" {% if periodo == 'dia' %}selected{% endif %}>Dia</option>
+        <option value="mes" {% if periodo == 'mes' %}selected{% endif %}>Mês</option>
+        <option value="ano" {% if periodo == 'ano' %}selected{% endif %}>Ano</option>
+      </select>
+    </div>
+    <div class="col-md-5">
+      <label class="form-label" for="dataRelatorio">Data de referência</label>
+      <input id="dataRelatorio" name="data" type="date" class="form-control" value="{{ referencia.isoformat() }}" required>
+      <small class="text-muted">Para mês e ano, qualquer dia do período serve como referência.</small>
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+      <button class="btn btn-outline-primary w-100" type="submit">Atualizar</button>
+    </div>
+  </form>
+  <div class="d-flex flex-wrap gap-2 mt-4">
+    <a class="btn btn-success" href="{{ url_for('agenda.relatorio_excel', periodo=periodo, data=referencia.isoformat()) }}">Baixar Excel</a>
+    <a class="btn btn-danger" href="{{ url_for('agenda.relatorio_pdf', periodo=periodo, data=referencia.isoformat()) }}">Baixar PDF</a>
+  </div>
+</section>
+{% endblock %}

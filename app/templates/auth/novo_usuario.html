@@ -10,7 +10,7 @@
   <div class="col-md-4"><label class="form-label" for="setor">Setor</label><input id="setor" name="setor" class="form-control" value="{{ request.form.get('setor', '') }}" maxlength="100"></div>
   <div class="col-md-4"><label class="form-label" for="telefone">Telefone</label><input id="telefone" name="telefone" class="form-control" value="{{ request.form.get('telefone', '') }}" maxlength="30"></div>
   <div class="col-md-4"><label class="form-label" for="matricula">Matrícula</label><input id="matricula" name="matricula" class="form-control" value="{{ request.form.get('matricula', '') }}" maxlength="60" pattern="\d-\d{6}" placeholder="0-000000"><div class="form-text">Obrigatória para professores, no padrão 0-000000.</div></div>
-  <div class="col-md-6"><label class="form-label" for="nova-senha">Senha</label><input id="nova-senha" name="senha" type="password" class="form-control" minlength="10" autocomplete="new-password" required><div class="form-text">Mínimo de 10 caracteres.</div></div>
+  <div class="col-md-6"><label class="form-label" for="nova-senha">Senha</label><input id="nova-senha" name="senha" type="password" class="form-control" minlength="6" autocomplete="new-password" required><div class="form-text">Mínimo de 6 caracteres.</div></div>
   <div class="col-12"><button class="btn btn-primary" type="submit">Salvar</button></div>
 </form>
 </div>

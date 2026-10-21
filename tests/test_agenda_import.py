@@ -35,7 +35,7 @@ class AgendaExcelImportTestCase(unittest.TestCase):
                 perfil="admin",
                 ativo=True,
             )
-            labs = [Laboratorio(nome=f"Lab {number:02d}", ativo=True) for number in range(1, 6)]
+            labs = [Laboratorio(nome=f"Lab {number:02d}", ativo=True) for number in range(1, 9)]
             db.session.add_all([admin, *labs])
             db.session.commit()
 
@@ -83,7 +83,6 @@ class AgendaExcelImportTestCase(unittest.TestCase):
             )
             self.assertEqual(first.importados, 3)
             self.assertEqual(AgendamentoLaboratorio.query.count(), 3)
-
             morning = AgendamentoLaboratorio.query.filter_by(titulo="Aula de Redes").one()
             afternoon = AgendamentoLaboratorio.query.filter_by(titulo="Treinamento").one()
             self.assertEqual(morning.inicio, datetime(2026, 1, 5, 8, 0))
@@ -99,6 +98,21 @@ class AgendaExcelImportTestCase(unittest.TestCase):
             self.assertEqual(second.importados, 0)
             self.assertEqual(second.conflitos, 3)
             self.assertEqual(AgendamentoLaboratorio.query.count(), 3)
+
+    def test_le_laboratorios_ate_oito(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.append(["Data", "Turno", "Lab 06", "Lab 07", "Lab 08"])
+        sheet.append([date(2026, 8, 1), "Manhã", "Aula 6", "Aula 7", "Aula 8"])
+        workbook.save(self.workbook_path)
+        workbook.close()
+
+        data = read_agenda_workbook(self.workbook_path)
+
+        self.assertEqual(
+            {entry.laboratorio_nome for entry in data.registros},
+            {"Lab 06", "Lab 07", "Lab 08"},
+        )
 
 
 if __name__ == "__main__":

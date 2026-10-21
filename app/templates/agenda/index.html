@@ -9,6 +9,7 @@
   </div>
   <div class="page-actions">
     <a class="btn btn-outline-secondary" href="{{ url_for('agendamento_laboratorios') }}">+ Solicitar laboratório</a>
+    {% if suporte %}<a class="btn btn-outline-primary" href="{{ url_for('agenda.relatorios') }}">Relatórios</a>{% endif %}
     {% if suporte %}<a class="btn btn-primary" href="{{ url_for('agenda.recados') }}">Gerenciar recados</a>{% endif %}
   </div>
 </section>

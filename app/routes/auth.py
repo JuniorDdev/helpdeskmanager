@@ -84,8 +84,8 @@ def cadastro_professor():
             matricula = professor_matricula(request.form.get("matricula"))
             senha = required_text(request.form, "senha", "Senha")
             confirmacao_senha = request.form.get("confirmacao_senha") or ""
-            if len(senha) < 10:
-                raise ValidationError("A senha deve ter pelo menos 10 caracteres.")
+            if len(senha) < 6:
+                raise ValidationError("A senha deve ter pelo menos 6 caracteres.")
             if senha != confirmacao_senha:
                 raise ValidationError("A confirmação de senha não confere.")
 
@@ -133,8 +133,8 @@ def novo_usuario():
             if perfil == "professor":
                 matricula = professor_matricula(matricula)
             senha = required_text(request.form, "senha", "Senha")
-            if len(senha) < 10:
-                raise ValidationError("A senha deve ter pelo menos 10 caracteres.")
+            if len(senha) < 6:
+                raise ValidationError("A senha deve ter pelo menos 6 caracteres.")
 
             usuario = Usuario(
                 nome=nome,

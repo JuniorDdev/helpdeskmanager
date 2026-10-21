@@ -101,7 +101,7 @@ def _find_columns(worksheet):
         )
         lab_columns = {}
         for column, heading in headings.items():
-            match = re.fullmatch(r"lab(?:oratorio)?\s*0?([1-5])", heading)
+            match = re.fullmatch(r"lab(?:oratorio)?\s*0?([1-8])", heading)
             if match:
                 lab_columns[column] = f"Lab {int(match.group(1)):02d}"
         if data_column and shift_column and lab_columns:
