@@ -53,7 +53,7 @@ class AgendaRoutesTestCase(unittest.TestCase):
                 email="professora@teste.local",
                 senha_hash="inutilizado",
                 perfil="professor",
-                matricula="PROF-001",
+                matricula="0-0000",
                 ativo=True,
             )
             laboratorios = [Laboratorio(nome=f"Lab {numero:02d}", ativo=True) for numero in range(1, 6)]
@@ -213,9 +213,22 @@ class AgendaRoutesTestCase(unittest.TestCase):
         response = self.client.get("/agendamento-laboratorios")
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Professora Teste", response.data)
-        self.assertIn(b"PROF-001", response.data)
+        self.assertIn(b"0-0000", response.data)
         self.assertEqual(self.client.get("/").status_code, 403)
         self.assertEqual(self.client.get("/chamados/").status_code, 403)
+
+    def test_professor_entra_com_matricula_e_senha(self):
+        with self.app.app_context():
+            professor = db.session.get(Usuario, self.professor_id)
+            professor.set_senha("senha-professor-123")
+            db.session.commit()
+
+        response = self.client.post(
+            "/login-professor",
+            data={"matricula": "0-0000", "senha": "senha-professor-123"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.location.endswith("/agendamento-laboratorios"))
 
 
 if __name__ == "__main__":

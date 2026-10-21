@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Acesso do Professor · Helpdesk Manager{% endblock %}
+{% block content %}
+<div class="login-screen justify-content-center">
+  <div class="login-card">
+    <div class="login-card-top">
+      <div class="brand-mark mb-3">HD</div>
+      <h1 class="h3 mb-0">Acesso do Professor</h1>
+      <p>Entre para solicitar e acompanhar agendamentos de laboratório.</p>
+    </div>
+    <div class="login-card-body">
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="form-label" for="matricula">Matrícula</label>
+        <input class="form-control mb-1" id="matricula" name="matricula" pattern="\d-\d{4}" placeholder="0-0000" autocomplete="username" required>
+        <div class="form-text mb-3">Formato: 0-0000.</div>
+        <label class="form-label" for="senha">Senha</label>
+        <input class="form-control mb-4" id="senha" type="password" name="senha" autocomplete="current-password" required>
+        <button class="btn btn-primary w-100" type="submit">Entrar para agendar</button>
+      </form>
+      <p class="text-center mt-3 mb-0"><a href="{{ url_for('auth.login') }}">Acesso da equipe Helpdesk</a></p>
+    </div>
+  </div>
+</div>
+{% endblock %}

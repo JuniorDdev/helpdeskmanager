@@ -1,3 +1,5 @@
+import re
+
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy.exc import IntegrityError
@@ -10,25 +12,59 @@ from app.utils.validation import ValidationError, choice, optional_text, require
 
 auth_bp = Blueprint("auth", __name__)
 USER_PROFILES = {"admin", "tecnico", "usuario", "almoxarife", "professor"}
+MATRICULA_PROFESSOR_PATTERN = re.compile(r"^\d-\d{4}$")
+
+
+def professor_matricula(value):
+    matricula = (value or "").strip()
+    if not MATRICULA_PROFESSOR_PATTERN.fullmatch(matricula):
+        raise ValidationError("A matrícula deve seguir o padrão 0-0000.")
+    return matricula
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 @limiter.limit("5 per minute; 20 per hour", methods=["POST"])
 def login():
     if current_user.is_authenticated:
+        if current_user.perfil == "professor":
+            return redirect(url_for("agendamento_laboratorios"))
         return redirect(url_for("dashboard.index"))
 
     if request.method == "POST":
         email = (request.form.get("email") or "").strip().lower()
         senha = request.form.get("senha") or ""
         usuario = Usuario.query.filter_by(email=email, ativo=True).first()
+        if usuario and usuario.perfil == "professor":
+            flash("Professores devem acessar com matrícula e senha.", "info")
+            return redirect(url_for("auth.login_professor"))
         if usuario and usuario.check_senha(senha):
             login_user(usuario)
-            if usuario.perfil == "professor":
-                return redirect(url_for("agendamento_laboratorios"))
             return redirect(url_for("dashboard.index"))
         flash("E-mail ou senha inválidos.", "danger")
     return render_template("auth/login.html")
+
+
+@auth_bp.route("/login-professor", methods=["GET", "POST"])
+@limiter.limit("5 per minute; 20 per hour", methods=["POST"])
+def login_professor():
+    if current_user.is_authenticated:
+        return redirect(
+            url_for("agendamento_laboratorios")
+            if current_user.perfil == "professor"
+            else url_for("dashboard.index")
+        )
+
+    if request.method == "POST":
+        matricula = (request.form.get("matricula") or "").strip()
+        senha = request.form.get("senha") or ""
+        usuario = Usuario.query.filter_by(
+            matricula=matricula, perfil="professor", ativo=True
+        ).first()
+        if usuario and usuario.check_senha(senha):
+            login_user(usuario)
+            return redirect(url_for("agendamento_laboratorios"))
+        flash("Matrícula ou senha inválidas.", "danger")
+    return render_template("auth/login_professor.html")
 
 
 @auth_bp.route("/logout", methods=["POST"])
@@ -48,8 +84,8 @@ def novo_usuario():
             email = required_text(request.form, "email", "E-mail", 120).lower()
             perfil = choice(request.form, "perfil", USER_PROFILES, "Perfil")
             matricula = optional_text(request.form, "matricula", 60)
-            if perfil == "professor" and not matricula:
-                raise ValidationError("A matrícula é obrigatória para o perfil Professor.")
+            if perfil == "professor":
+                matricula = professor_matricula(matricula)
             senha = required_text(request.form, "senha", "Senha")
             if len(senha) < 10:
                 raise ValidationError("A senha deve ter pelo menos 10 caracteres.")
