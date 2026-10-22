@@ -1,4 +1,33 @@
 document.addEventListener('DOMContentLoaded', () => {
+  let installPrompt;
+  const installBanner = document.getElementById('pwaInstallPrompt');
+  const installButton = document.getElementById('pwaInstallButton');
+  const dismissInstall = document.getElementById('pwaInstallDismiss');
+
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    installPrompt = event;
+    if (installBanner && !localStorage.getItem('pwa-install-dismissed')) installBanner.hidden = false;
+  });
+  installButton?.addEventListener('click', async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    installPrompt = null;
+    if (installBanner) installBanner.hidden = true;
+  });
+  dismissInstall?.addEventListener('click', () => {
+    localStorage.setItem('pwa-install-dismissed', '1');
+    if (installBanner) installBanner.hidden = true;
+  });
+  window.addEventListener('appinstalled', () => {
+    if (installBanner) installBanner.hidden = true;
+    localStorage.removeItem('pwa-install-dismissed');
+  });
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js'));
+  }
+
   const sidebar = document.getElementById('appSidebar');
   const menuToggle = document.getElementById('menuToggle');
   const backdrop = document.getElementById('sidebarBackdrop');

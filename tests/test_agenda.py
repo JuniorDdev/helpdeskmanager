@@ -235,6 +235,15 @@ class AgendaRoutesTestCase(unittest.TestCase):
             professor = db.session.get(Usuario, self.professor_id)
             self.assertTrue(professor.check_senha("nova-senha-professor"))
 
+    def test_arquivos_pwa_estao_disponiveis(self):
+        manifest = self.client.get("/manifest.webmanifest")
+        service_worker = self.client.get("/service-worker.js")
+
+        self.assertEqual(manifest.status_code, 200)
+        self.assertIn(b'"display": "standalone"', manifest.data)
+        self.assertEqual(service_worker.status_code, 200)
+        self.assertIn(b"CACHE_NAME", service_worker.data)
+
     def test_confirma_primeira_solicitacao_e_respeita_capacidade(self):
         with self.app.app_context():
             laboratorio = db.session.get(Laboratorio, self.laboratorio_id)
@@ -265,6 +274,7 @@ class AgendaRoutesTestCase(unittest.TestCase):
         with self.app.app_context():
             self.assertEqual(db.session.get(AgendamentoLaboratorio, primeiro_id).status, "agendado")
             self.assertEqual(HistoricoAgendamentoLaboratorio.query.filter_by(agendamento_id=primeiro_id).count(), 2)
+            self.assertEqual(NotificacaoSistema.query.filter_by(lida_em=None).count(), 1)
 
         self.login(self.usuario_id)
         dados_excesso = dict(dados, data_reserva="2030-03-16", quantidade_alunos="11")

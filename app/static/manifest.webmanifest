@@ -1,0 +1,19 @@
+{
+  "name": "Helpdesk Manager",
+  "short_name": "Helpdesk",
+  "description": "Central de chamados, laboratórios e operações.",
+  "lang": "pt-BR",
+  "start_url": "/login",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f7ff",
+  "theme_color": "#111b35",
+  "icons": [
+    {
+      "src": "/static/icons/helpdesk-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

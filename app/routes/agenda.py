@@ -17,6 +17,7 @@ from app.models import (
     HistoricoAgendamentoLaboratorio,
     Laboratorio,
     NotificacaoAgenda,
+    NotificacaoSistema,
     Recado,
     Usuario,
 )
@@ -143,6 +144,19 @@ def notify_support(booking):
         f"{booking.professor_nome} solicitou {booking.laboratorio.nome} ({booking.protocolo}).",
         url_for("agenda.index", data=booking.inicio.date().isoformat()),
     )
+
+
+def resolve_booking_notifications(booking):
+    """Marca como lidos os avisos de uma solicitação que já recebeu tratativa."""
+    resolved_at = datetime.utcnow()
+    NotificacaoAgenda.query.filter_by(agendamento_id=booking.id, lida_em=None).update(
+        {NotificacaoAgenda.lida_em: resolved_at}, synchronize_session=False
+    )
+    NotificacaoSistema.query.filter(
+        NotificacaoSistema.tipo == "agendamento",
+        NotificacaoSistema.lida_em.is_(None),
+        NotificacaoSistema.mensagem.contains(booking.protocolo),
+    ).update({NotificacaoSistema.lida_em: resolved_at}, synchronize_session=False)
 
 
 def booking_conflict(laboratorio_id, inicio, fim, ignore_id=None):
@@ -598,6 +612,7 @@ def confirmar_agendamento(id):
         booking.confirmado_em = datetime.utcnow()
         booking.motivo_decisao = optional_text(request.form, "motivo_decisao")
         register_history(booking, "agendamento_confirmado", booking.motivo_decisao or "Agendamento confirmado.")
+        resolve_booking_notifications(booking)
         db.session.commit()
     except (ValidationError, SQLAlchemyError) as error:
         db.session.rollback()
@@ -622,6 +637,7 @@ def recusar_agendamento(id):
         booking.status = "recusado"
         booking.motivo_decisao = required_text(request.form, "motivo_decisao", "Motivo da recusa")
         register_history(booking, "solicitacao_recusada", booking.motivo_decisao)
+        resolve_booking_notifications(booking)
         db.session.commit()
     except (ValidationError, SQLAlchemyError) as error:
         db.session.rollback()
@@ -642,6 +658,7 @@ def cancelar_agendamento(id):
             booking.status = "cancelado"
             booking.motivo_decisao = optional_text(request.form, "motivo_decisao") or "Cancelado pelo solicitante ou pela equipe."
             register_history(booking, "agendamento_cancelado", booking.motivo_decisao)
+            resolve_booking_notifications(booking)
             db.session.commit()
         except SQLAlchemyError:
             db.session.rollback()
@@ -661,6 +678,7 @@ def excluir_agendamento(id):
         booking.status = "excluido"
         booking.motivo_decisao = optional_text(request.form, "motivo_decisao") or "Excluído pela equipe responsável."
         register_history(booking, "agendamento_excluido", booking.motivo_decisao)
+        resolve_booking_notifications(booking)
         db.session.commit()
     except (ValidationError, SQLAlchemyError) as error:
         db.session.rollback()

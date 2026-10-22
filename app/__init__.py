@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, abort, redirect, render_template, request, url_for
+from flask import Flask, abort, redirect, render_template, request, send_from_directory, url_for
 from flask_wtf.csrf import CSRFError
 from flask_login import current_user
 
@@ -70,6 +70,16 @@ def create_app(config_overrides=None):
     @app.get("/agenda/")
     def legacy_agenda():
         return redirect(url_for("agenda.index", **request.args))
+
+    @app.get("/manifest.webmanifest")
+    def pwa_manifest():
+        return send_from_directory(app.static_folder, "manifest.webmanifest", mimetype="application/manifest+json")
+
+    @app.get("/service-worker.js")
+    def pwa_service_worker():
+        response = send_from_directory(app.static_folder, "service-worker.js", mimetype="application/javascript")
+        response.headers["Cache-Control"] = "no-cache"
+        return response
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(chamados_bp)
     app.register_blueprint(maquinas_bp)
@@ -88,6 +98,8 @@ def create_app(config_overrides=None):
             "agenda.solicitar_professor",
             "agenda.novo_agendamento",
             "auth.logout",
+            "pwa_manifest",
+            "pwa_service_worker",
             "static",
         }
         if request.endpoint not in allowed_endpoints:
