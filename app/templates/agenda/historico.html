@@ -13,7 +13,7 @@
   {% for item in historicos %}
   <article class="notice-card mb-2">
     <strong>{{ item.acao.replace('_', ' ')|capitalize }}</strong>
-    <small>{{ item.criado_em.strftime('%d/%m/%Y %H:%M') }} · {{ item.usuario.nome }}</small>
+    <small>{{ item.criado_em.strftime('%d/%m/%Y %H:%M') }} · {{ item.usuario.nome }}{% if item.usuario.matricula %} · {{ item.usuario.matricula }}{% endif %}</small>
     {% if item.descricao %}<p class="mb-0">{{ item.descricao }}</p>{% endif %}
   </article>
   {% else %}

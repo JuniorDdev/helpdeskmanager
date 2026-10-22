@@ -182,6 +182,17 @@
       <article class="notice-card priority-importante mb-2">
         <strong>{{ item.protocolo }} · {{ item.laboratorio.nome }}</strong>
         <p class="mb-1">{{ item.professor_nome }} · {{ item.professor_matricula }}<br>{{ item.inicio.strftime('%d/%m/%Y') }} · {{ item.turno_label }} · {{ item.quantidade_alunos }} alunos</p>
+        {% if item.atendido_por %}
+        <p class="mb-1 small text-muted">Responsável: {{ item.atendido_por.nome }} · {{ item.atendido_por.matricula }}</p>
+        {% endif %}
+        {% if not item.atendido_por %}
+        <form method="post" action="{{ url_for('agenda.assumir_agendamento', id=item.id) }}" class="d-inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-sm btn-primary" type="submit">Assumir atendimento</button>
+        </form>
+        {% elif item.atendido_por_id != current_user.id %}
+        <span class="badge text-bg-secondary">Em atendimento</span>
+        {% else %}
         <form method="post" action="{{ url_for('agenda.confirmar_agendamento', id=item.id) }}" class="d-inline">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="btn btn-sm btn-success" type="submit">Confirmar</button>
@@ -191,6 +202,7 @@
           <input type="hidden" name="motivo_decisao" value="Solicitação recusada pela equipe responsável.">
           <button class="btn btn-sm btn-outline-danger" type="submit">Recusar</button>
         </form>
+        {% endif %}
       </article>
       {% else %}
       <div class="agenda-empty compact"><span>✓</span><strong>Sem solicitações pendentes</strong></div>

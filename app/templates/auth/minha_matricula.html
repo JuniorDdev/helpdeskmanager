@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Minha matrícula | Helpdesk Manager{% endblock %}
+{% block content %}
+<section class="page-heading"><div><span class="page-eyebrow">Identificação da equipe</span><h1>Minha matrícula</h1><p>Sua matrícula será registrada no atendimento e na decisão de cada solicitação de agendamento.</p></div></section>
+<section class="agenda-panel"><form method="post" class="row g-3"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="col-md-6"><label class="form-label" for="matricula">Matrícula funcional</label><input id="matricula" name="matricula" class="form-control" maxlength="60" value="{{ current_user.matricula or '' }}" required autofocus></div><div class="col-12"><button class="btn btn-primary" type="submit">Salvar matrícula</button></div></form></section>
+{% endblock %}

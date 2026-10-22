@@ -15,6 +15,7 @@ with app.app_context():
     ensure_user_schema()
 
     admin_email = (os.getenv("ADMIN_EMAIL") or "admin@admin.com").strip().lower()
+    admin_matricula = (os.getenv("ADMIN_MATRICULA") or "ADMIN-001").strip()
     configured_admin_password = os.getenv("ADMIN_PASSWORD")
     admin_password = configured_admin_password or secrets.token_urlsafe(12)
     if len(admin_password) < 10:
@@ -26,6 +27,7 @@ with app.app_context():
             nome="Administrador",
             email=admin_email,
             perfil="admin",
+            matricula=admin_matricula,
             setor="TI",
             telefone="",
             ativo=True,

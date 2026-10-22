@@ -41,6 +41,8 @@ class AgendamentoLaboratorio(db.Model):
         index=True,
     )
     motivo_decisao = db.Column(db.Text)
+    atendido_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), index=True)
+    atendido_em = db.Column(db.DateTime)
     confirmado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
     confirmado_em = db.Column(db.DateTime)
     criado_em = db.Column(db.DateTime, server_default=db.func.now(), nullable=False)
@@ -50,6 +52,7 @@ class AgendamentoLaboratorio(db.Model):
 
     laboratorio = db.relationship("Laboratorio", backref="agendamentos")
     usuario = db.relationship("Usuario", foreign_keys=[usuario_id], backref="agendamentos_laboratorio")
+    atendido_por = db.relationship("Usuario", foreign_keys=[atendido_por_id])
     confirmado_por = db.relationship("Usuario", foreign_keys=[confirmado_por_id])
 
     @property

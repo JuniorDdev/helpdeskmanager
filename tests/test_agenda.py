@@ -36,6 +36,7 @@ class AgendaRoutesTestCase(unittest.TestCase):
                 email="admin@teste.local",
                 senha_hash="inutilizado",
                 perfil="admin",
+            matricula="ADM-000001",
                 ativo=True,
             )
             usuario = Usuario(
@@ -164,6 +165,33 @@ class AgendaRoutesTestCase(unittest.TestCase):
         self.assertIn(b"Nenhum agendamento foi gravado", response.data)
         with self.app.app_context():
             self.assertEqual(AgendamentoLaboratorio.query.count(), 0)
+
+    def test_tecnico_assume_solicitacao_e_fica_registrado_no_historico(self):
+        with self.app.app_context():
+            booking = AgendamentoLaboratorio(
+                laboratorio_id=self.laboratorio_id,
+                usuario_id=self.usuario_id,
+                titulo="Aula prática",
+                professor_nome="Usuário Teste",
+                professor_matricula="MAT-001",
+                quantidade_alunos=10,
+                inicio=datetime(2030, 3, 15, 8, 0),
+                fim=datetime(2030, 3, 15, 12, 0),
+                status="solicitado",
+            )
+            db.session.add(booking)
+            db.session.commit()
+            booking_id = booking.id
+
+        self.login(self.admin_id)
+        response = self.client.post(f"/agendamentos/{booking_id}/assumir", follow_redirects=True)
+
+        self.assertIn("sob seu atendimento".encode(), response.data)
+        with self.app.app_context():
+            booking = db.session.get(AgendamentoLaboratorio, booking_id)
+            self.assertEqual(booking.atendido_por_id, self.admin_id)
+            self.assertEqual(booking.atendido_por.matricula, "ADM-000001")
+            self.assertEqual(booking.historicos[-1].acao, "atendimento_assumido")
 
     def test_admin_localiza_professor_e_redefine_senha(self):
         self.login(self.admin_id)
@@ -302,7 +330,8 @@ class AgendaRoutesTestCase(unittest.TestCase):
         self.assertIn("confirmado:".encode(), response.data)
         with self.app.app_context():
             self.assertEqual(db.session.get(AgendamentoLaboratorio, primeiro_id).status, "agendado")
-            self.assertEqual(HistoricoAgendamentoLaboratorio.query.filter_by(agendamento_id=primeiro_id).count(), 2)
+            self.assertEqual(HistoricoAgendamentoLaboratorio.query.filter_by(agendamento_id=primeiro_id).count(), 3)
+            self.assertEqual(db.session.get(AgendamentoLaboratorio, primeiro_id).atendido_por_id, self.admin_id)
             self.assertEqual(NotificacaoSistema.query.filter_by(lida_em=None).count(), 1)
 
         self.login(self.usuario_id)
@@ -359,7 +388,8 @@ class AgendaRoutesTestCase(unittest.TestCase):
         )
         with self.app.app_context():
             self.assertEqual(db.session.get(AgendamentoLaboratorio, booking_id).status, "cancelado")
-            self.assertEqual(HistoricoAgendamentoLaboratorio.query.filter_by(agendamento_id=booking_id).count(), 1)
+            self.assertEqual(HistoricoAgendamentoLaboratorio.query.filter_by(agendamento_id=booking_id).count(), 2)
+            self.assertEqual(db.session.get(AgendamentoLaboratorio, booking_id).atendido_por_id, self.admin_id)
 
     def test_dashboard_e_agenda_renderizam(self):
         self.login(self.usuario_id)

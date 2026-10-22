@@ -83,6 +83,8 @@ def report_bookings(inicio, fim):
         AgendamentoLaboratorio.query.options(
             joinedload(AgendamentoLaboratorio.laboratorio),
             joinedload(AgendamentoLaboratorio.usuario),
+            joinedload(AgendamentoLaboratorio.atendido_por),
+            joinedload(AgendamentoLaboratorio.confirmado_por),
         )
         .filter(
             AgendamentoLaboratorio.status != "excluido",
@@ -124,6 +126,27 @@ def register_history(booking, action, description=None, actor=None):
             descricao=description,
         )
     )
+
+
+def claim_booking(booking):
+    """Atribui a solicitação ao técnico atual ou valida o responsável já definido."""
+    if not current_user.matricula:
+        raise ValidationError(
+            "Cadastre sua matrícula antes de tratar solicitações de agendamento."
+        )
+    if booking.atendido_por_id and booking.atendido_por_id != current_user.id:
+        responsavel = booking.atendido_por
+        raise ValidationError(
+            f"Esta solicitação já está em atendimento por {responsavel.nome} ({responsavel.matricula})."
+        )
+    if not booking.atendido_por_id:
+        booking.atendido_por_id = current_user.id
+        booking.atendido_em = datetime.utcnow()
+        register_history(
+            booking,
+            "atendimento_assumido",
+            f"Atendimento assumido por {current_user.nome} ({current_user.matricula}).",
+        )
 
 
 def notify_support(booking):
@@ -409,7 +432,8 @@ def relatorio_excel():
     worksheet.append([])
     headers = [
         "Protocolo", "Data", "Turno", "Laboratório", "Professor", "Matrícula",
-        "Alunos", "Atividade", "Status", "Solicitado em", "Confirmado em",
+        "Alunos", "Atividade", "Status", "Responsável", "Matrícula responsável",
+        "Solicitado em", "Confirmado em",
     ]
     worksheet.append(headers)
     for cell in worksheet[1]:
@@ -430,15 +454,17 @@ def relatorio_excel():
                 booking.quantidade_alunos,
                 excel_safe(booking.titulo),
                 STATUS_LABELS.get(booking.status, booking.status),
+                excel_safe(booking.atendido_por.nome) if booking.atendido_por else "",
+                excel_safe(booking.atendido_por.matricula) if booking.atendido_por else "",
                 booking.criado_em.strftime("%d/%m/%Y %H:%M") if booking.criado_em else "",
                 booking.confirmado_em.strftime("%d/%m/%Y %H:%M") if booking.confirmado_em else "",
             ]
         )
     worksheet.freeze_panes = "A5"
-    worksheet.auto_filter.ref = f"A4:K{max(4, worksheet.max_row)}"
+    worksheet.auto_filter.ref = f"A4:M{max(4, worksheet.max_row)}"
     for cell in worksheet["B"][4:]:
         cell.number_format = "dd/mm/yyyy"
-    widths = [16, 13, 12, 16, 28, 16, 10, 40, 16, 20, 20]
+    widths = [16, 13, 12, 16, 28, 16, 10, 40, 16, 26, 22, 20, 20]
     for column, width in enumerate(widths, start=1):
         worksheet.column_dimensions[chr(64 + column)].width = width
 
@@ -638,6 +664,23 @@ def historico_agendamento(id):
     return render_template("agenda/historico.html", booking=booking, historicos=historicos)
 
 
+@agenda_bp.route("/<int:id>/assumir", methods=["POST"])
+@roles_required("admin", "tecnico")
+def assumir_agendamento(id):
+    booking = AgendamentoLaboratorio.query.with_for_update().get_or_404(id)
+    try:
+        if booking.status != "solicitado":
+            raise ValidationError("Somente solicitações pendentes podem ser assumidas.")
+        claim_booking(booking)
+        db.session.commit()
+    except (ValidationError, SQLAlchemyError) as error:
+        db.session.rollback()
+        flash(str(error) if isinstance(error, ValidationError) else "Não foi possível assumir a solicitação.", "danger")
+    else:
+        flash(f"{booking.protocolo} está sob seu atendimento.", "success")
+    return redirect(url_for("agenda.index", data=booking.inicio.date()))
+
+
 @agenda_bp.route("/<int:id>/confirmar", methods=["POST"])
 @roles_required("admin", "tecnico")
 def confirmar_agendamento(id):
@@ -664,6 +707,7 @@ def confirmar_agendamento(id):
             )
         if booking_conflict(booking.laboratorio_id, booking.inicio, booking.fim, booking.id):
             raise ValidationError("Este horário já foi confirmado para outra solicitação.")
+        claim_booking(booking)
         booking.status = "agendado"
         booking.confirmado_por_id = current_user.id
         booking.confirmado_em = datetime.utcnow()
@@ -691,6 +735,7 @@ def recusar_agendamento(id):
     try:
         if booking.status != "solicitado":
             raise ValidationError("Somente solicitações pendentes podem ser recusadas.")
+        claim_booking(booking)
         booking.status = "recusado"
         booking.motivo_decisao = required_text(request.form, "motivo_decisao", "Motivo da recusa")
         register_history(booking, "solicitacao_recusada", booking.motivo_decisao)
@@ -712,14 +757,16 @@ def cancelar_agendamento(id):
         abort(403)
     if booking.status in STATUS_ATIVOS:
         try:
+            if has_role(*SUPPORT_ROLES):
+                claim_booking(booking)
             booking.status = "cancelado"
             booking.motivo_decisao = optional_text(request.form, "motivo_decisao") or "Cancelado pelo solicitante ou pela equipe."
             register_history(booking, "agendamento_cancelado", booking.motivo_decisao)
             resolve_booking_notifications(booking)
             db.session.commit()
-        except SQLAlchemyError:
+        except (ValidationError, SQLAlchemyError) as error:
             db.session.rollback()
-            flash("Não foi possível cancelar a reserva.", "danger")
+            flash(str(error) if isinstance(error, ValidationError) else "Não foi possível cancelar a reserva.", "danger")
         else:
             flash("Agendamento cancelado e preservado no histórico.", "success")
     return redirect(url_for("agenda.index", data=request.form.get("data_retorno") or date.today()))
@@ -732,6 +779,7 @@ def excluir_agendamento(id):
     try:
         if booking.status == "excluido":
             raise ValidationError("Este agendamento já foi excluído.")
+        claim_booking(booking)
         booking.status = "excluido"
         booking.motivo_decisao = optional_text(request.form, "motivo_decisao") or "Excluído pela equipe responsável."
         register_history(booking, "agendamento_excluido", booking.motivo_decisao)

@@ -24,6 +24,10 @@ def professor_matricula(value):
     return matricula
 
 
+def staff_matricula(value):
+    return required_text({"matricula": value}, "matricula", "Matrícula", 60)
+
+
 def normalized_name(value):
     return re.sub(r"\s+", " ", (value or "").strip()).casefold()
 
@@ -225,6 +229,8 @@ def novo_usuario():
             matricula = optional_text(request.form, "matricula", 60)
             if perfil == "professor":
                 matricula = professor_matricula(matricula)
+            elif perfil in {"admin", "tecnico"}:
+                matricula = staff_matricula(matricula)
             senha = required_text(request.form, "senha", "Senha")
             if len(senha) < 6:
                 raise ValidationError("A senha deve ter pelo menos 6 caracteres.")
@@ -245,12 +251,31 @@ def novo_usuario():
             flash(str(error), "danger")
         except IntegrityError:
             db.session.rollback()
-            flash("Já existe um usuário cadastrado com esse e-mail.", "danger")
+            flash("Já existe um usuário cadastrado com esse e-mail ou matrícula.", "danger")
         else:
             flash("Usuário cadastrado com sucesso.", "success")
             return redirect(url_for("dashboard.index"))
 
     return render_template("auth/novo_usuario.html")
+
+
+@auth_bp.route("/minha-matricula", methods=["GET", "POST"])
+@roles_required("admin", "tecnico")
+def minha_matricula():
+    if request.method == "POST":
+        try:
+            current_user.matricula = staff_matricula(request.form.get("matricula"))
+            db.session.commit()
+        except ValidationError as error:
+            db.session.rollback()
+            flash(str(error), "danger")
+        except IntegrityError:
+            db.session.rollback()
+            flash("Esta matrícula já está cadastrada para outro usuário.", "danger")
+        else:
+            flash("Matrícula atualizada. Ela será registrada nas próximas decisões de agenda.", "success")
+            return redirect(url_for("agenda.index"))
+    return render_template("auth/minha_matricula.html")
 
 
 @auth_bp.route("/usuarios/senha", methods=["GET", "POST"])
