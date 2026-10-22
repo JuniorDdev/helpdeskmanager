@@ -115,35 +115,28 @@
       {% endif %}
     </section>
 
+    {% if suporte %}
     <section class="agenda-panel mt-4" id="nova-reserva">
       <div class="agenda-panel-header">
-        <div><span class="page-eyebrow">Nova solicitação</span><h2>Solicitar laboratório por turno</h2></div>
+        <div><span class="page-eyebrow">Reserva interna</span><h2>Registrar agendamento da equipe</h2></div>
       </div>
       {% if laboratorios %}
       <form method="post" action="{{ url_for('agenda.novo_agendamento') }}" class="row g-3">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="data_retorno" value="{{ data_selecionada.isoformat() }}">
-        <div class="col-md-6">
-          <label class="form-label" for="professorNome">Nome do professor</label>
-          <input id="professorNome" name="professor_nome" class="form-control" maxlength="120" value="{{ current_user.nome }}" required>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label" for="professorMatricula">Matrícula</label>
-          <input id="professorMatricula" name="professor_matricula" class="form-control" maxlength="60" required>
+        <div class="col-12">
+          <label class="form-label" for="responsavelNome">Nome do responsável</label>
+          <input id="responsavelNome" name="responsavel_nome" class="form-control" maxlength="120" value="{{ current_user.nome }}" required>
         </div>
         <div class="col-12">
-          <label class="form-label" for="reservaTitulo">Título da atividade</label>
+          <label class="form-label" for="reservaTitulo">Disciplina ou atividade</label>
           <input id="reservaTitulo" name="titulo" class="form-control" maxlength="150" placeholder="Ex.: Aula de informática - Turma 8A" required>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-6">
           <label class="form-label" for="reservaData">Data</label>
           <input id="reservaData" name="data_reserva" type="date" class="form-control" value="{{ data_selecionada.isoformat() }}" required>
         </div>
-        <div class="col-md-4">
-          <label class="form-label" for="quantidadeAlunos">Quantidade de alunos</label>
-          <input id="quantidadeAlunos" name="quantidade_alunos" type="number" min="1" class="form-control" required>
-        </div>
-        <div class="col-md-4">
+        <div class="col-md-6">
           <label class="form-label" for="reservaTurno">Turno</label>
           <select id="reservaTurno" name="turno" class="form-select" required>
             {% for codigo, turno in turnos.items() %}
@@ -163,12 +156,13 @@
           <label class="form-label" for="reservaFinalidade">Finalidade ou observações</label>
           <textarea id="reservaFinalidade" name="finalidade" class="form-control" rows="3" placeholder="Informe turma, responsável, equipamentos necessários ou outras observações."></textarea>
         </div>
-        <div class="col-12"><button class="btn btn-primary" type="submit" {% if domingo %}disabled{% endif %}>Enviar solicitação</button></div>
+        <div class="col-12"><button class="btn btn-primary" type="submit" {% if domingo %}disabled{% endif %}>Registrar agendamento</button></div>
       </form>
       {% else %}
       <div class="alert alert-warning mb-0">Nenhum laboratório está disponível. Peça a um administrador ou técnico para cadastrar um espaço.</div>
       {% endif %}
     </section>
+    {% endif %}
   </div>
 
   <aside class="col-xl-4">

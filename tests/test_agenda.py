@@ -112,6 +112,41 @@ class AgendaRoutesTestCase(unittest.TestCase):
             self.assertEqual(NotificacaoAgenda.query.count(), 3)
             self.assertEqual(NotificacaoSistema.query.count(), 3)
 
+    def test_equipe_registra_agendamento_interno_sem_matricula_ou_quantidade(self):
+        self.login(self.admin_id)
+        response = self.client.post(
+            "/agendamentos/novo",
+            data={
+                "responsavel_nome": "Admin Teste",
+                "titulo": "Reunião de planejamento",
+                "finalidade": "Organização interna",
+                "laboratorio_id": self.laboratorio_id,
+                "data_reserva": "2030-03-15",
+                "turno": "manha",
+                "data_retorno": "2030-03-15",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        with self.app.app_context():
+            booking = AgendamentoLaboratorio.query.one()
+            self.assertEqual(booking.status, "agendado")
+            self.assertEqual(booking.professor_nome, "Admin Teste")
+            self.assertEqual(booking.professor_matricula, "")
+            self.assertEqual(booking.quantidade_alunos, 0)
+            self.assertEqual(booking.atendido_por_id, self.admin_id)
+            self.assertEqual(booking.confirmado_por_id, self.admin_id)
+            self.assertEqual(booking.historicos[-1].acao, "agendamento_interno_criado")
+            self.assertEqual(NotificacaoAgenda.query.count(), 0)
+
+    def test_equipe_e_redirecionada_do_portal_do_professor(self):
+        self.login(self.admin_id)
+
+        response = self.client.get("/agendamento-laboratorios")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/agendamentos/")
+
     def test_relatorios_de_agendamentos_em_excel_e_pdf(self):
         with self.app.app_context():
             agendamento = AgendamentoLaboratorio(

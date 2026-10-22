@@ -213,7 +213,11 @@ def apply_booking_fields(booking):
     inicio = datetime.combine(data_reserva, turno["inicio"])
     fim = datetime.combine(data_reserva, turno["fim"])
 
-    quantidade_alunos = integer(request.form, "quantidade_alunos", "Quantidade de alunos", 1)
+    reserva_interna = has_role(*SUPPORT_ROLES)
+    quantidade_informada = (request.form.get("quantidade_alunos") or "").strip()
+    quantidade_alunos = 0 if reserva_interna and not quantidade_informada else integer(
+        request.form, "quantidade_alunos", "Quantidade de alunos", 1
+    )
     if laboratorio.capacidade and quantidade_alunos > laboratorio.capacidade:
         raise ValidationError(
             f"A quantidade de alunos excede a capacidade de {laboratorio.capacidade} computadores do laboratório."
@@ -225,8 +229,12 @@ def apply_booking_fields(booking):
             raise ValidationError("Esse laboratório já está reservado no turno selecionado.")
 
     booking.laboratorio_id = laboratorio.id
-    booking.professor_nome = required_text(request.form, "professor_nome", "Nome do professor", 120)
-    booking.professor_matricula = required_text(request.form, "professor_matricula", "Matrícula", 60)
+    if reserva_interna:
+        booking.professor_nome = required_text(request.form, "responsavel_nome", "Nome do responsável", 120)
+        booking.professor_matricula = optional_text(request.form, "professor_matricula", 60) or ""
+    else:
+        booking.professor_nome = required_text(request.form, "professor_nome", "Nome do professor", 120)
+        booking.professor_matricula = required_text(request.form, "professor_matricula", "Matrícula", 60)
     booking.quantidade_alunos = quantidade_alunos
     booking.titulo = required_text(request.form, "titulo", "Título", 150)
     booking.finalidade = optional_text(request.form, "finalidade")
@@ -534,6 +542,8 @@ def relatorio_pdf():
 @agenda_bp.route("/solicitar")
 @login_required
 def solicitar_professor():
+    if has_role(*SUPPORT_ROLES):
+        return redirect(url_for("agenda.index"))
     data_selecionada = selected_date()
     inicio_dia = datetime.combine(data_selecionada, time.min)
     fim_dia = inicio_dia + timedelta(days=1)
@@ -596,13 +606,28 @@ def solicitar_professor():
 @agenda_bp.route("/novo", methods=["POST"])
 @login_required
 def novo_agendamento():
-    booking = AgendamentoLaboratorio(usuario_id=current_user.id, status="solicitado")
+    reserva_interna = has_role(*SUPPORT_ROLES)
+    booking = AgendamentoLaboratorio(
+        usuario_id=current_user.id,
+        status="agendado" if reserva_interna else "solicitado",
+    )
     try:
         apply_booking_fields(booking)
         db.session.add(booking)
         db.session.flush()
-        register_history(booking, "solicitacao_criada", "Solicitação aguardando análise da equipe.")
-        notify_support(booking)
+        if reserva_interna:
+            booking.atendido_por_id = current_user.id
+            booking.atendido_em = datetime.utcnow()
+            booking.confirmado_por_id = current_user.id
+            booking.confirmado_em = datetime.utcnow()
+            register_history(
+                booking,
+                "agendamento_interno_criado",
+                "Agendamento interno confirmado pela equipe responsável.",
+            )
+        else:
+            register_history(booking, "solicitacao_criada", "Solicitação aguardando análise da equipe.")
+            notify_support(booking)
         db.session.commit()
     except ValidationError as error:
         db.session.rollback()
@@ -611,10 +636,13 @@ def novo_agendamento():
         db.session.rollback()
         flash("Não foi possível salvar a reserva.", "danger")
     else:
-        flash(
-            f"Solicitação {booking.protocolo} enviada. A equipe confirmará o agendamento após análise.",
-            "success",
-        )
+        if reserva_interna:
+            flash(f"Agendamento interno {booking.protocolo} registrado e confirmado.", "success")
+        else:
+            flash(
+                f"Solicitação {booking.protocolo} enviada. A equipe confirmará o agendamento após análise.",
+                "success",
+            )
     destino = "agendamento_laboratorios" if current_user.perfil == "professor" else "agenda.index"
     return redirect(url_for(destino, data=request.form.get("data_retorno") or date.today()))
 
