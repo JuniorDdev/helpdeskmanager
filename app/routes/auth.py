@@ -265,6 +265,75 @@ def novo_usuario():
     return render_template("auth/novo_usuario.html")
 
 
+@auth_bp.route("/usuarios")
+@roles_required("admin")
+def listar_usuarios():
+    busca = (request.args.get("busca") or "").strip()
+    perfil = (request.args.get("perfil") or "").strip()
+    query = Usuario.query
+    if busca:
+        termo = f"%{busca}%"
+        query = query.filter(
+            or_(
+                Usuario.nome.ilike(termo),
+                Usuario.email.ilike(termo),
+                Usuario.matricula.ilike(termo),
+            )
+        )
+    if perfil in USER_PROFILES:
+        query = query.filter_by(perfil=perfil)
+    usuarios = query.order_by(Usuario.nome).all()
+    return render_template(
+        "auth/listar_usuarios.html",
+        busca=busca,
+        perfil=perfil,
+        perfis=sorted(USER_PROFILES),
+        usuarios=usuarios,
+    )
+
+
+@auth_bp.route("/usuarios/<int:id>/editar", methods=["GET", "POST"])
+@roles_required("admin")
+def editar_usuario(id):
+    usuario = Usuario.query.get_or_404(id)
+    if request.method == "POST":
+        try:
+            nome = required_text(request.form, "nome", "Nome", 120)
+            email = required_text(request.form, "email", "E-mail", 120).lower()
+            perfil = choice(request.form, "perfil", USER_PROFILES, "Perfil")
+            matricula = optional_text(request.form, "matricula", 60)
+            if perfil == "professor":
+                matricula = professor_matricula(matricula)
+            elif perfil in {"admin", "tecnico"}:
+                matricula = staff_matricula(matricula)
+            if usuario.id == current_user.id and request.form.get("ativo") != "on":
+                raise ValidationError("Você não pode desativar o próprio acesso.")
+
+            usuario.nome = nome
+            usuario.email = email
+            usuario.perfil = perfil
+            usuario.matricula = matricula or None
+            usuario.setor = optional_text(request.form, "setor", 100)
+            usuario.telefone = optional_text(request.form, "telefone", 30)
+            usuario.ativo = request.form.get("ativo") == "on"
+            nova_senha = optional_text(request.form, "senha")
+            if nova_senha:
+                if len(nova_senha) < 6:
+                    raise ValidationError("A nova senha deve ter pelo menos 6 caracteres.")
+                usuario.set_senha(nova_senha)
+            db.session.commit()
+        except ValidationError as error:
+            db.session.rollback()
+            flash(str(error), "danger")
+        except IntegrityError:
+            db.session.rollback()
+            flash("Já existe um usuário cadastrado com esse e-mail ou matrícula.", "danger")
+        else:
+            flash(f"Cadastro de {usuario.nome} atualizado com sucesso.", "success")
+            return redirect(url_for("auth.listar_usuarios", busca=usuario.matricula or usuario.email))
+    return render_template("auth/editar_usuario.html", usuario=usuario, perfis=sorted(USER_PROFILES))
+
+
 @auth_bp.route("/minha-matricula", methods=["GET", "POST"])
 @roles_required("admin", "tecnico")
 def minha_matricula():

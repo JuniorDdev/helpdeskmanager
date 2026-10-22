@@ -239,6 +239,32 @@ class AgendaRoutesTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "/")
 
+    def test_admin_lista_e_atualiza_matricula_de_usuario(self):
+        self.login(self.admin_id)
+
+        lista = self.client.get("/usuarios?busca=Professora")
+        atualizacao = self.client.post(
+            f"/usuarios/{self.professor_id}/editar",
+            data={
+                "nome": "Professora Teste",
+                "email": "professora@teste.local",
+                "perfil": "professor",
+                "matricula": "0-000000",
+                "setor": "Informática",
+                "telefone": "99999-9999",
+                "senha": "nova-senha-segura",
+                "ativo": "on",
+            },
+        )
+
+        self.assertEqual(lista.status_code, 200)
+        self.assertIn(b"0-000000", lista.data)
+        self.assertEqual(atualizacao.status_code, 302)
+        with self.app.app_context():
+            professor = db.session.get(Usuario, self.professor_id)
+            self.assertEqual(professor.setor, "Informática")
+            self.assertTrue(professor.check_senha("nova-senha-segura"))
+
     def test_admin_localiza_professor_e_redefine_senha(self):
         self.login(self.admin_id)
 
