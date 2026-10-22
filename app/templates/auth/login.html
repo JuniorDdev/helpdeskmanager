@@ -11,8 +11,8 @@
     <div class="login-card-body">
       <form method="post">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label class="form-label" for="email">E-mail</label>
-        <input class="form-control mb-3" id="email" type="email" name="email" autocomplete="username" required>
+        <label class="form-label" for="identificador">E-mail ou matrícula</label>
+        <input class="form-control mb-3" id="identificador" name="identificador" autocomplete="username" placeholder="nome@instituicao.edu ou TEC-000123" required autofocus>
         <label class="form-label" for="senha">Senha</label>
         <input class="form-control mb-4" id="senha" type="password" name="senha" autocomplete="current-password" required>
         <button class="btn btn-primary w-100" type="submit">Entrar no sistema</button>

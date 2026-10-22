@@ -41,16 +41,22 @@ def login():
         return redirect(url_for("dashboard.index"))
 
     if request.method == "POST":
-        email = (request.form.get("email") or "").strip().lower()
+        identificador = (request.form.get("identificador") or request.form.get("email") or "").strip()
         senha = request.form.get("senha") or ""
-        usuario = Usuario.query.filter_by(email=email, ativo=True).first()
+        usuario = Usuario.query.filter(
+            Usuario.ativo.is_(True),
+            or_(
+                db.func.lower(Usuario.email) == identificador.lower(),
+                Usuario.matricula == identificador,
+            ),
+        ).first()
         if usuario and usuario.perfil == "professor":
             flash("Professores devem acessar com matrícula e senha.", "info")
             return redirect(url_for("auth.login_professor"))
         if usuario and usuario.check_senha(senha):
             login_user(usuario)
             return redirect(url_for("dashboard.index"))
-        flash("E-mail ou senha inválidos.", "danger")
+        flash("E-mail ou matrícula, ou senha inválidos.", "danger")
     return render_template("auth/login.html")
 
 

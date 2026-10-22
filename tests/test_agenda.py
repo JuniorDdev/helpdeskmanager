@@ -39,6 +39,7 @@ class AgendaRoutesTestCase(unittest.TestCase):
             matricula="ADM-000001",
                 ativo=True,
             )
+            admin.set_senha("senha-admin")
             usuario = Usuario(
                 nome="Usuário Teste",
                 email="usuario@teste.local",
@@ -192,6 +193,16 @@ class AgendaRoutesTestCase(unittest.TestCase):
             self.assertEqual(booking.atendido_por_id, self.admin_id)
             self.assertEqual(booking.atendido_por.matricula, "ADM-000001")
             self.assertEqual(booking.historicos[-1].acao, "atendimento_assumido")
+
+    def test_admin_pode_entrar_com_matricula(self):
+        response = self.client.post(
+            "/login",
+            data={"identificador": "ADM-000001", "senha": "senha-admin"},
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/")
 
     def test_admin_localiza_professor_e_redefine_senha(self):
         self.login(self.admin_id)
