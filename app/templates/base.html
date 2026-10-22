@@ -59,6 +59,7 @@
           <div class="nav-label mt-3">Administração</div>
           <a class="sidebar-link" href="{{ url_for('auth.novo_usuario') }}"><span class="nav-icon">♙</span><span>Usuários</span></a>
           <a class="sidebar-link" href="{{ url_for('auth.redefinir_senha_professor') }}"><span class="nav-icon">⌁</span><span>Senha de professor</span></a>
+          <a class="sidebar-link" href="{{ url_for('agenda.importar_excel') }}"><span class="nav-icon">⇧</span><span>Importar agenda</span></a>
           {% endif %}
           {% endif %}
         </nav>

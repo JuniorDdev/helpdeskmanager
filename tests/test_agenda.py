@@ -1,5 +1,8 @@
 import unittest
-from datetime import datetime
+from datetime import date, datetime
+from io import BytesIO
+
+from openpyxl import Workbook
 
 from app import create_app
 from app.extensions import db
@@ -135,6 +138,32 @@ class AgendaRoutesTestCase(unittest.TestCase):
         self.assertEqual(pdf.status_code, 200)
         self.assertIn("agendamentos_2030.pdf", pdf.headers["Content-Disposition"])
         self.assertTrue(pdf.data.startswith(b"%PDF"))
+
+    def test_admin_simula_importacao_de_agenda_por_excel(self):
+        self.login(self.admin_id)
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.append(["Data", "Turno", "Lab 05"])
+        sheet.append([date(2030, 3, 15), "Manhã", "Aula de Redes"])
+        content = BytesIO()
+        workbook.save(content)
+        content.seek(0)
+
+        response = self.client.post(
+            "/agendamentos/importar-excel",
+            data={
+                "arquivo": (content, "mapa.xlsx"),
+                "a_partir_de": "2030-03-15",
+                "acao": "simular",
+            },
+            content_type="multipart/form-data",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Simula", response.data)
+        self.assertIn(b"Nenhum agendamento foi gravado", response.data)
+        with self.app.app_context():
+            self.assertEqual(AgendamentoLaboratorio.query.count(), 0)
 
     def test_admin_localiza_professor_e_redefine_senha(self):
         self.login(self.admin_id)

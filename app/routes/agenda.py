@@ -1,7 +1,9 @@
 from datetime import date, datetime, time, timedelta
 from io import BytesIO
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
@@ -12,6 +14,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload
 
 from app.extensions import db
+from app.services.agenda_excel import AgendaExcelError, import_agenda_workbook
 from app.models import (
     AgendamentoLaboratorio,
     HistoricoAgendamentoLaboratorio,
@@ -332,6 +335,60 @@ def relatorios():
     except ValidationError:
         referencia = date.today()
     return render_template("agenda/relatorios.html", periodo=periodo, referencia=referencia)
+
+
+@agenda_bp.route("/importar-excel", methods=["GET", "POST"])
+@roles_required("admin")
+def importar_excel():
+    """Importa reservas futuras dos laboratórios 5 a 8 a partir de um mapa Excel."""
+    result = None
+    starts_on = date.today()
+
+    if request.method == "POST":
+        arquivo = request.files.get("arquivo")
+        try:
+            starts_on = parse_date_value(request.form.get("a_partir_de"), "Data inicial")
+        except ValidationError as error:
+            flash(str(error), "danger")
+            return redirect(url_for("agenda.importar_excel"))
+
+        if not arquivo or not arquivo.filename:
+            flash("Selecione a planilha de agendamentos.", "danger")
+            return redirect(url_for("agenda.importar_excel"))
+        if Path(arquivo.filename).suffix.lower() != ".xlsx":
+            flash("Envie uma planilha no formato .xlsx.", "danger")
+            return redirect(url_for("agenda.importar_excel"))
+
+        temporary_path = None
+        try:
+            with NamedTemporaryFile(
+                suffix=".xlsx", dir=current_app.config["UPLOAD_FOLDER"], delete=False
+            ) as temporary_file:
+                arquivo.save(temporary_file)
+                temporary_path = Path(temporary_file.name)
+            confirm = request.form.get("acao") == "confirmar"
+            result = import_agenda_workbook(
+                temporary_path,
+                user_email=current_user.email,
+                lab_names={"Lab 05", "Lab 06", "Lab 07", "Lab 08"},
+                starts_on=starts_on,
+                commit=confirm,
+            )
+            if confirm:
+                flash(f"{result.importados} agendamento(s) foram importados.", "success")
+            else:
+                flash("Simulação concluída. Nenhum agendamento foi gravado.", "info")
+        except AgendaExcelError as error:
+            flash(str(error), "danger")
+        finally:
+            if temporary_path:
+                temporary_path.unlink(missing_ok=True)
+
+    return render_template(
+        "agenda/importar_excel.html",
+        starts_on=starts_on,
+        result=result,
+    )
 
 
 @agenda_bp.route("/relatorios/excel")

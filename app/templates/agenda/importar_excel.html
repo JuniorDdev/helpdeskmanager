@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Importar agenda | Helpdesk Manager{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><span class="page-eyebrow">Administração</span><h1>Importar agenda do Excel</h1><p>Importe apenas os laboratórios 5 a 8. As reservas existentes não são duplicadas.</p></div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('agenda.index') }}">Voltar à agenda</a>
+</div>
+<section class="agenda-panel">
+  <form method="post" enctype="multipart/form-data" class="row g-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-md-7"><label class="form-label" for="arquivo">Planilha de agendamentos (.xlsx)</label><input class="form-control" id="arquivo" name="arquivo" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required></div>
+    <div class="col-md-5"><label class="form-label" for="aPartirDe">Importar a partir de</label><input class="form-control" id="aPartirDe" name="a_partir_de" type="date" value="{{ starts_on.isoformat() }}" required></div>
+    <div class="col-12 d-flex gap-2"><button class="btn btn-outline-primary" name="acao" value="simular" type="submit">Simular importação</button><button class="btn btn-primary" name="acao" value="confirmar" type="submit">Importar agendamentos</button></div>
+  </form>
+</section>
+{% if result %}
+<section class="agenda-panel mt-4"><h2>Resultado da {{ 'importação' if result.importados else 'simulação' }}</h2><div class="row g-3 mt-1"><div class="col-sm-4"><strong>{{ result.encontrados }}</strong><br><small>Registros na planilha</small></div><div class="col-sm-4"><strong>{{ result.prontos }}</strong><br><small>Prontos para importar</small></div><div class="col-sm-4"><strong>{{ result.conflitos }}</strong><br><small>Conflitos já existentes</small></div><div class="col-sm-4"><strong>{{ result.duplicados_na_planilha }}</strong><br><small>Duplicados ignorados</small></div><div class="col-sm-4"><strong>{{ result.placeholders_ignorados }}</strong><br><small>Marcadores vazios ignorados</small></div><div class="col-sm-4"><strong>{{ result.importados }}</strong><br><small>Importados agora</small></div></div>{% if result.avisos %}<div class="alert alert-warning mt-3 mb-0">{% for aviso in result.avisos %}<div>{{ aviso }}</div>{% endfor %}</div>{% endif %}</section>
+{% endif %}
+{% endblock %}
