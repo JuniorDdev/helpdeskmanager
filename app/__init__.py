@@ -1,8 +1,11 @@
+import json
 import os
 
-from flask import Flask, abort, current_app, redirect, render_template, request, send_from_directory, url_for
+from flask import Flask, abort, current_app, has_request_context, redirect, render_template, request, send_from_directory, url_for
 from flask_wtf.csrf import CSRFError
 from flask_login import current_user
+from sqlalchemy import event, inspect
+from sqlalchemy.orm import Session
 
 from app.extensions import csrf, db, limiter, login_manager, migrate
 from config import Config
@@ -22,6 +25,23 @@ def create_app(config_overrides=None):
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
     db.init_app(app)
+    from app.models.auditoria import AuditoriaAdmin
+
+    @event.listens_for(Session, "before_flush")
+    def registrar_auditoria(session, _context, _instances):
+        if not has_request_context() or not current_user.is_authenticated or current_user.perfil not in {"admin", "tecnico"}:
+            return
+        for item, acao in [(obj, "criado") for obj in session.new] + [(obj, "alterado") for obj in session.dirty] + [(obj, "excluido") for obj in session.deleted]:
+            if isinstance(item, AuditoriaAdmin) or not hasattr(item, "__tablename__"):
+                continue
+            dados = {}
+            if acao == "alterado":
+                for campo in inspect(item).attrs:
+                    if campo.key != "senha_hash" and campo.history.has_changes():
+                        dados[campo.key] = {"antes": str((campo.history.deleted or [""])[0]), "depois": str((campo.history.added or [""])[0])}
+                if not dados:
+                    continue
+            session.add(AuditoriaAdmin(usuario_id=current_user.id, matricula=current_user.matricula or "", modulo=item.__tablename__, acao=acao, registro_id=getattr(item, "id", None), alteracoes=json.dumps(dados, ensure_ascii=False)))
     login_manager.init_app(app)
     csrf.init_app(app)
     migrate.init_app(app, db)

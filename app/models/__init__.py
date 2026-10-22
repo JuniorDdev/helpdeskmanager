@@ -17,3 +17,4 @@ from app.models.agenda import (
     NotificacaoAgenda,
     Recado,
 )
+from app.models.auditoria import AuditoriaAdmin
