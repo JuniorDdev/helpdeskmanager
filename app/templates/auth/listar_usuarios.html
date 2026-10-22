@@ -2,7 +2,7 @@
 {% block title %}Matrículas e acessos | Helpdesk Manager{% endblock %}
 {% block content %}
 <section class="page-heading">
-  <div><span class="page-eyebrow">Administração</span><h1>Matrículas e acessos</h1><p>Consulte e administre os cadastros de professores e da equipe.</p></div>
+  <div><span class="page-eyebrow">Administração</span><h1>Matrículas e acessos</h1><p>Consulte, cadastre e administre os acessos de professores e da equipe.</p></div>
   <div class="page-actions"><a class="btn btn-primary" href="{{ url_for('auth.novo_usuario') }}">Novo usuário</a></div>
 </section>
 <section class="form-card">
@@ -15,7 +15,7 @@
 <section class="agenda-panel mt-4">
   <div class="agenda-panel-header"><div><span class="page-eyebrow">Cadastros</span><h2>Usuários encontrados</h2></div><span class="agenda-count">{{ usuarios|length }}</span></div>
   <div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Nome</th><th>Perfil</th><th>Matrícula</th><th>E-mail</th><th>Situação</th><th></th></tr></thead><tbody>
-  {% for usuario in usuarios %}<tr><td>{{ usuario.nome }}</td><td>{{ usuario.perfil|capitalize }}</td><td>{{ usuario.matricula or '—' }}</td><td>{{ usuario.email }}</td><td>{{ 'Ativo' if usuario.ativo else 'Inativo' }}</td><td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('auth.editar_usuario', id=usuario.id) }}">Ver / alterar</a></td></tr>{% else %}<tr><td colspan="6" class="text-center text-muted py-4">Nenhum cadastro encontrado.</td></tr>{% endfor %}
+  {% for usuario in usuarios %}<tr><td>{{ usuario.nome }}{% if usuario.id == current_user.id %}<span class="text-muted small"> (você)</span>{% endif %}</td><td>{{ usuario.perfil|capitalize }}</td><td>{{ usuario.matricula or '—' }}</td><td>{{ usuario.email }}</td><td>{{ 'Ativo' if usuario.ativo else 'Inativo' }}</td><td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('auth.editar_usuario', id=usuario.id) }}">Ver / alterar</a></td></tr>{% else %}<tr><td colspan="6" class="text-center text-muted py-4">Nenhum cadastro encontrado.</td></tr>{% endfor %}
   </tbody></table></div>
 </section>
 {% endblock %}

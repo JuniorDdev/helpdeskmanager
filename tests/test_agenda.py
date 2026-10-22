@@ -243,6 +243,7 @@ class AgendaRoutesTestCase(unittest.TestCase):
         self.login(self.admin_id)
 
         lista = self.client.get("/usuarios?busca=Professora")
+        menu = self.client.get("/")
         atualizacao = self.client.post(
             f"/usuarios/{self.professor_id}/editar",
             data={
@@ -259,6 +260,9 @@ class AgendaRoutesTestCase(unittest.TestCase):
 
         self.assertEqual(lista.status_code, 200)
         self.assertIn(b"0-000000", lista.data)
+        self.assertIn("Matrículas e acessos".encode(), menu.data)
+        self.assertNotIn("Senha de professor".encode(), menu.data)
+        self.assertNotIn("Minha matrícula".encode(), menu.data)
         self.assertEqual(atualizacao.status_code, 302)
         with self.app.app_context():
             professor = db.session.get(Usuario, self.professor_id)
