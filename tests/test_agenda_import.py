@@ -114,6 +114,24 @@ class AgendaExcelImportTestCase(unittest.TestCase):
             {"Lab 06", "Lab 07", "Lab 08"},
         )
 
+    def test_importacao_pode_restringir_laboratorios_e_data_inicial(self):
+        with self.app.app_context():
+            result = import_agenda_workbook(
+                self.workbook_path,
+                user_email="admin@teste.local",
+                lab_names={"Lab 02", "Lab 05"},
+                starts_on=date(2026, 1, 5),
+                commit=True,
+            )
+
+            self.assertEqual(result.encontrados, 3)
+            self.assertEqual(result.prontos, 2)
+            self.assertEqual(result.importados, 2)
+            self.assertEqual(
+                {booking.laboratorio.nome for booking in AgendamentoLaboratorio.query.all()},
+                {"Lab 02", "Lab 05"},
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

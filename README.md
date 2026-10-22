@@ -98,6 +98,12 @@ Depois de conferir os totais, grave os dados:
 python -m flask --app app.py importar-agenda-excel "C:\caminho\Mapa de Agendamento_2025.xlsx" --confirmar
 ```
 
+Para importar apenas os laboratórios 5 a 8, a partir de uma data específica:
+
+```powershell
+python -m flask --app app.py importar-agenda-excel "C:\caminho\Mapa de Agendamento_2025.xlsx" --laboratorios 5,6,7,8 --a-partir-de 2026-10-22 --confirmar
+```
+
 Por padrão, o primeiro administrador ou técnico ativo fica como responsável pelas reservas importadas. Para escolher uma conta, acrescente `--usuario email@exemplo.com`. A carga pode ser executada novamente: registros já existentes são tratados como conflitos e não são duplicados.
 
 Chamados, estoque, maquinas e conferencias sao filtrados conforme o perfil. Operacoes de escrita exigem protecao CSRF e validacao no servidor.

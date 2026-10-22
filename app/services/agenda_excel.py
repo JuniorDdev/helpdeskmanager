@@ -197,17 +197,31 @@ def import_agenda_workbook(
     path: str | Path,
     *,
     user_email: str | None = None,
+    lab_names: set[str] | None = None,
+    starts_on: date | None = None,
     commit: bool = False,
 ) -> AgendaImportResult:
-    """Simula ou grava a planilha, ignorando reservas que conflitam com o banco."""
+    """Simula ou grava a planilha, ignorando reservas que conflitam com o banco.
+
+    ``lab_names`` e ``starts_on`` permitem importar somente uma parte do mapa,
+    sem levar para o banco os demais laboratórios ou períodos já encerrados.
+    """
     workbook_path = Path(path)
     spreadsheet = read_agenda_workbook(workbook_path)
     user = _resolve_user(user_email)
 
-    lab_names = sorted({entry.laboratorio_nome for entry in spreadsheet.registros})
-    laboratories = Laboratorio.query.filter(Laboratorio.nome.in_(lab_names)).all()
+    selected_labs = set(lab_names) if lab_names is not None else None
+    entries = [
+        entry
+        for entry in spreadsheet.registros
+        if (selected_labs is None or entry.laboratorio_nome in selected_labs)
+        and (starts_on is None or entry.data >= starts_on)
+    ]
+
+    imported_lab_names = sorted({entry.laboratorio_nome for entry in entries})
+    laboratories = Laboratorio.query.filter(Laboratorio.nome.in_(imported_lab_names)).all()
     laboratories_by_name = {laboratory.nome: laboratory for laboratory in laboratories}
-    missing_labs = sorted(set(lab_names) - set(laboratories_by_name))
+    missing_labs = sorted(set(imported_lab_names) - set(laboratories_by_name))
     if missing_labs:
         raise AgendaExcelError(
             "Laboratórios não cadastrados: "
@@ -216,9 +230,9 @@ def import_agenda_workbook(
         )
 
     conflicts_by_day = defaultdict(list)
-    if spreadsheet.registros:
-        first_day = min(entry.data for entry in spreadsheet.registros)
-        last_day = max(entry.data for entry in spreadsheet.registros)
+    if entries:
+        first_day = min(entry.data for entry in entries)
+        last_day = max(entry.data for entry in entries)
         existing = AgendamentoLaboratorio.query.filter(
             AgendamentoLaboratorio.status == "agendado",
             AgendamentoLaboratorio.inicio >= datetime.combine(first_day, time.min),
@@ -234,7 +248,7 @@ def import_agenda_workbook(
     source_keys = set()
     conflicts = 0
     duplicates = 0
-    for entry in spreadsheet.registros:
+    for entry in entries:
         laboratory = laboratories_by_name[entry.laboratorio_nome]
         start_time, end_time = TURNOS_EXCEL[entry.turno]
         start = datetime.combine(entry.data, start_time)

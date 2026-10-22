@@ -1,3 +1,4 @@
+from datetime import date
 from pathlib import Path
 
 import click
@@ -16,17 +17,35 @@ from app.services.agenda_excel import AgendaExcelError, import_agenda_workbook
     help="E-mail do usuário responsável. Sem a opção, usa o primeiro admin/técnico ativo.",
 )
 @click.option(
+    "--laboratorios",
+    help="Laboratórios a importar, separados por vírgula. Ex.: 5,6,7,8.",
+)
+@click.option(
+    "--a-partir-de",
+    "starts_on",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    help="Importa somente reservas desta data em diante (AAAA-MM-DD).",
+)
+@click.option(
     "--confirmar",
     is_flag=True,
     help="Grava no banco. Sem esta opção, executa apenas uma simulação.",
 )
 @with_appcontext
-def importar_agenda_excel_command(arquivo, usuario, confirmar):
+def importar_agenda_excel_command(arquivo, usuario, laboratorios, starts_on, confirmar):
     """Importa o mapa mensal de laboratórios de um ARQUIVO .xlsx."""
+    lab_names = None
+    if laboratorios:
+        numbers = {part.strip() for part in laboratorios.split(",") if part.strip()}
+        if not numbers or any(not number.isdigit() or not 1 <= int(number) <= 8 for number in numbers):
+            raise click.ClickException("Use números de laboratórios entre 1 e 8, separados por vírgula.")
+        lab_names = {f"Lab {int(number):02d}" for number in numbers}
     try:
         result = import_agenda_workbook(
             arquivo,
             user_email=usuario,
+            lab_names=lab_names,
+            starts_on=starts_on.date() if starts_on else None,
             commit=confirmar,
         )
     except AgendaExcelError as error:
