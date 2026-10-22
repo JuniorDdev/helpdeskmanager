@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, abort, redirect, render_template, request, send_from_directory, url_for
+from flask import Flask, abort, current_app, redirect, render_template, request, send_from_directory, url_for
 from flask_wtf.csrf import CSRFError
 from flask_login import current_user
 
@@ -48,6 +48,16 @@ def create_app(config_overrides=None):
                 usuario_id=current_user.id, lida_em=None
             ).count()
         }
+
+    @app.context_processor
+    def access_management_context():
+        master_email = (current_app.config.get("MASTER_ADMIN_EMAIL") or "").casefold()
+        is_master_admin = (
+            current_user.is_authenticated
+            and current_user.perfil == "admin"
+            and current_user.email.casefold() == master_email
+        )
+        return {"is_master_admin": is_master_admin}
 
     from app.routes.auth import auth_bp
     from app.routes.agenda import agenda_bp, solicitar_professor

@@ -38,6 +38,7 @@ def build_database_uri():
 
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY")
+    MASTER_ADMIN_EMAIL = (os.getenv("MASTER_ADMIN_EMAIL") or "admin@admin.com").strip().lower()
     SQLALCHEMY_DATABASE_URI = build_database_uri()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True, "pool_recycle": 280}

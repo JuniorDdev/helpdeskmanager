@@ -1,6 +1,6 @@
 from functools import wraps
 
-from flask import abort
+from flask import abort, current_app
 from flask_login import current_user, login_required
 
 
@@ -24,6 +24,20 @@ def roles_required(*roles):
         return wrapped
 
     return decorator
+
+
+def master_admin_required(view):
+    """Restringe a gestão completa de acessos ao administrador master configurado."""
+
+    @wraps(view)
+    @login_required
+    def wrapped(*args, **kwargs):
+        master_email = (current_app.config.get("MASTER_ADMIN_EMAIL") or "").casefold()
+        if current_user.perfil != "admin" or current_user.email.casefold() != master_email:
+            abort(403)
+        return view(*args, **kwargs)
+
+    return wrapped
 
 
 def can_manage_ticket(chamado):

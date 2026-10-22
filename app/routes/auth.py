@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from app.extensions import db, limiter
 from app.models import Usuario
 from app.services.notifications import notify_support
-from app.utils.authz import roles_required
+from app.utils.authz import master_admin_required, roles_required
 from app.utils.validation import ValidationError, choice, optional_text, required_text
 
 
@@ -225,7 +225,7 @@ def recuperar_senha_professor():
 
 
 @auth_bp.route("/usuarios/novo", methods=["GET", "POST"])
-@roles_required("admin")
+@master_admin_required
 def novo_usuario():
     if request.method == "POST":
         try:
@@ -266,7 +266,7 @@ def novo_usuario():
 
 
 @auth_bp.route("/usuarios")
-@roles_required("admin")
+@master_admin_required
 def listar_usuarios():
     busca = (request.args.get("busca") or "").strip()
     perfil = (request.args.get("perfil") or "").strip()
@@ -293,7 +293,7 @@ def listar_usuarios():
 
 
 @auth_bp.route("/usuarios/<int:id>/editar", methods=["GET", "POST"])
-@roles_required("admin")
+@master_admin_required
 def editar_usuario(id):
     usuario = Usuario.query.get_or_404(id)
     if request.method == "POST":
@@ -354,7 +354,7 @@ def minha_matricula():
 
 
 @auth_bp.route("/usuarios/senha", methods=["GET", "POST"])
-@roles_required("admin")
+@master_admin_required
 def redefinir_senha_usuario():
     termo = (request.values.get("busca") or "").strip()
     usuarios = []
@@ -391,7 +391,7 @@ def redefinir_senha_usuario():
 
 
 @auth_bp.route("/professores/senha", methods=["GET", "POST"])
-@roles_required("admin")
+@master_admin_required
 def redefinir_senha_professor():
     termo = (request.values.get("busca") or "").strip()
     professores = []

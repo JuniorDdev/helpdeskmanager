@@ -23,6 +23,7 @@ class AgendaRoutesTestCase(unittest.TestCase):
             {
                 "TESTING": True,
                 "SECRET_KEY": "test-secret-key",
+                "MASTER_ADMIN_EMAIL": "admin@teste.local",
                 "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
                 "WTF_CSRF_ENABLED": False,
                 "RATELIMIT_ENABLED": False,
@@ -268,6 +269,28 @@ class AgendaRoutesTestCase(unittest.TestCase):
             professor = db.session.get(Usuario, self.professor_id)
             self.assertEqual(professor.setor, "Informática")
             self.assertTrue(professor.check_senha("nova-senha-segura"))
+
+    def test_admin_que_nao_e_master_nao_acessa_gestao_de_matriculas(self):
+        with self.app.app_context():
+            outro_admin = Usuario(
+                nome="Outro Admin",
+                email="outro-admin@teste.local",
+                senha_hash="inutilizado",
+                perfil="admin",
+                matricula="ADM-000002",
+                ativo=True,
+            )
+            outro_admin.set_senha("senha-admin")
+            db.session.add(outro_admin)
+            db.session.commit()
+            outro_admin_id = outro_admin.id
+
+        self.login(outro_admin_id)
+        response = self.client.get("/usuarios")
+        menu = self.client.get("/")
+
+        self.assertEqual(response.status_code, 403)
+        self.assertNotIn("Matrículas e acessos".encode(), menu.data)
 
     def test_admin_localiza_professor_e_redefine_senha(self):
         self.login(self.admin_id)
