@@ -32,6 +32,24 @@ def normalized_name(value):
     return re.sub(r"\s+", " ", (value or "").strip()).casefold()
 
 
+def usuario_por_matricula_curta(identificador):
+    """Localiza um membro da equipe pelos últimos dígitos da matrícula oficial."""
+    digitos = re.sub(r"\D", "", identificador or "")
+    if not digitos or len(digitos) < 4 or not identificador.strip().isdigit():
+        return None
+    candidatos = Usuario.query.filter(
+        Usuario.ativo.is_(True),
+        Usuario.perfil.in_({"admin", "tecnico"}),
+        Usuario.matricula.like(f"%{digitos}"),
+    ).all()
+    candidatos = [
+        usuario
+        for usuario in candidatos
+        if re.sub(r"\D", "", usuario.matricula or "").endswith(digitos)
+    ]
+    return candidatos[0] if len(candidatos) == 1 else None
+
+
 @auth_bp.route("/login", methods=["GET", "POST"])
 @limiter.limit("5 per minute; 20 per hour", methods=["POST"])
 def login():
@@ -50,6 +68,8 @@ def login():
                 Usuario.matricula == identificador,
             ),
         ).first()
+        if not usuario:
+            usuario = usuario_por_matricula_curta(identificador)
         if usuario and usuario.perfil == "professor":
             flash("Professores devem acessar com matrícula e senha.", "info")
             return redirect(url_for("auth.login_professor"))

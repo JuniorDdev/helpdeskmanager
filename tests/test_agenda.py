@@ -240,6 +240,16 @@ class AgendaRoutesTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "/")
 
+    def test_admin_pode_entrar_com_ultimos_digitos_da_matricula(self):
+        response = self.client.post(
+            "/login",
+            data={"identificador": "0001", "senha": "senha-admin"},
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/")
+
     def test_admin_lista_e_atualiza_matricula_de_usuario(self):
         self.login(self.admin_id)
 
