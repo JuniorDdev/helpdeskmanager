@@ -32,6 +32,7 @@ class AgendamentoLaboratorio(db.Model):
     quantidade_alunos = db.Column(db.Integer, nullable=False, default=0)
     titulo = db.Column(db.String(150), nullable=False)
     finalidade = db.Column(db.Text)
+    softwares_necessarios = db.Column(db.Text)
     inicio = db.Column(db.DateTime, nullable=False, index=True)
     fim = db.Column(db.DateTime, nullable=False, index=True)
     status = db.Column(

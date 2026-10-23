@@ -16,6 +16,7 @@ def ensure_agenda_schema():
         "professor_nome": "VARCHAR(120) NOT NULL DEFAULT ''",
         "professor_matricula": "VARCHAR(60) NOT NULL DEFAULT ''",
         "quantidade_alunos": "INTEGER NOT NULL DEFAULT 0",
+        "softwares_necessarios": "TEXT",
         "motivo_decisao": "TEXT",
         "atendido_por_id": "INTEGER",
         "atendido_em": "DATETIME",

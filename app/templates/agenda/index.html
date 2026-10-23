@@ -175,6 +175,7 @@
       {% for item in solicitacoes_pendentes %}
       <article class="notice-card priority-importante mb-2">
         <strong>{{ item.protocolo }} · {{ item.laboratorio.nome }}</strong>
+        <a class="btn btn-sm btn-outline-primary float-end" href="{{ url_for('agenda.detalhes_agendamento', id=item.id) }}">Ver detalhes</a>
         <p class="mb-1">{{ item.professor_nome }} · {{ item.professor_matricula }}<br>{{ item.inicio.strftime('%d/%m/%Y') }} · {{ item.turno_label }} · {{ item.quantidade_alunos }} alunos</p>
         {% if item.atendido_por %}
         <p class="mb-1 small text-muted">Responsável: {{ item.atendido_por.nome }} · {{ item.atendido_por.matricula }}</p>

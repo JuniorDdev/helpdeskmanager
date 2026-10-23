@@ -25,10 +25,10 @@
   <div class="container-fluid app-shell">
     <div class="row g-0">
       <aside class="col-lg-2 app-sidebar" id="appSidebar">
-        <a class="brand" href="{{ url_for('agendamento_laboratorios') if current_user.perfil == 'professor' else url_for('dashboard.index') }}">
+        <button class="brand brand-toggle" id="brandToggle" type="button" aria-label="Recolher ou expandir menu lateral">
           <span class="brand-mark">HD</span>
           <span class="brand-copy"><strong>Helpdesk</strong><small>Operations center</small></span>
-        </a>
+        </button>
         <div class="profile-chip">
           <span class="profile-avatar">{{ current_user.nome[:1]|upper }}</span>
           <span class="profile-copy"><strong>{{ current_user.nome }}</strong><small>{{ current_user.perfil|capitalize }}</small></span>
@@ -38,6 +38,7 @@
         <nav class="sidebar-nav" aria-label="Navegação principal">
           {% if current_user.perfil == 'professor' %}
           <a class="sidebar-link" href="{{ url_for('agendamento_laboratorios') }}"><span class="nav-icon">▦</span><span>Agendamento</span></a>
+          <a class="sidebar-link" href="{{ url_for('agenda.minhas_solicitacoes') }}"><span class="nav-icon">◷</span><span>Solicitações</span></a>
           {% else %}
           <a class="sidebar-link" href="{{ url_for('dashboard.index') }}"><span class="nav-icon">⌂</span><span>Dashboard</span></a>
           <a class="sidebar-link" href="{{ url_for('chamados.listar') }}"><span class="nav-icon">◈</span><span>Chamados</span></a>

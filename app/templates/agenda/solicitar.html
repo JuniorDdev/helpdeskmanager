@@ -57,11 +57,13 @@
     <div class="col-md-4"><label class="form-label" for="laboratorio">Laboratório</label><select id="laboratorio" name="laboratorio_id" class="form-select" required>{% for laboratorio in laboratorios %}<option value="{{ laboratorio.id }}" {% if laboratorio.id == preselected_lab_id %}selected{% endif %}>{{ laboratorio.nome }}{% if laboratorio.capacidade %} ({{ laboratorio.capacidade }} computadores){% endif %}</option>{% endfor %}</select></div>
     <div class="col-md-4"><label class="form-label" for="alunos">Quantidade de alunos</label><input id="alunos" name="quantidade_alunos" type="number" min="1" class="form-control" required></div>
     <div class="col-12"><label class="form-label" for="observacoes">Observações</label><textarea id="observacoes" name="finalidade" class="form-control" rows="3" placeholder="Equipamentos necessários ou outras informações."></textarea></div>
+    <div class="col-12"><label class="form-label" for="softwares">Softwares necessários</label><textarea id="softwares" name="softwares_necessarios" class="form-control" rows="2" placeholder="Ex.: AutoCAD, Visual Studio Code, Java."></textarea></div>
     <div class="col-12"><button class="btn btn-primary" type="submit" {% if domingo %}disabled{% endif %}>Enviar solicitação</button></div>
   </form>
 </div>
 {% if current_user.perfil == 'professor' %}
-<section class="agenda-panel mt-4">
+{# Solicitações foram movidas para o menu lateral. #}
+{% if false %}<section class="agenda-panel mt-4">
   <div class="agenda-panel-header"><div><span class="page-eyebrow">Minhas solicitações</span><h2>Acompanhamento</h2></div></div>
   {% for item in agendamentos %}
   <article class="notice-card mb-2"><strong>{{ item.protocolo }} · {{ item.laboratorio.nome }}</strong><p class="mb-0">{{ item.inicio.strftime('%d/%m/%Y') }} · {{ item.turno_label }} · {{ item.quantidade_alunos }} alunos · {{ {'solicitado': 'Em análise', 'agendado': 'Confirmado', 'recusado': 'Recusado', 'cancelado': 'Cancelado', 'excluido': 'Excluído'}[item.status] }}</p></article>
@@ -69,5 +71,6 @@
   <div class="agenda-empty compact"><strong>Nenhuma solicitação cadastrada.</strong></div>
   {% endfor %}
 </section>
+{% endif %}
 {% endif %}
 {% endblock %}

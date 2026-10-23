@@ -242,6 +242,7 @@ def apply_booking_fields(booking):
     booking.quantidade_alunos = quantidade_alunos
     booking.titulo = required_text(request.form, "titulo", "Título", 150)
     booking.finalidade = optional_text(request.form, "finalidade")
+    booking.softwares_necessarios = optional_text(request.form, "softwares_necessarios")
     booking.inicio = inicio
     booking.fim = fim
 
@@ -583,19 +584,12 @@ def solicitar_professor():
         preselected_turno = "manha"
     if data_selecionada.weekday() == 5 and preselected_turno == "noite":
         preselected_turno = "manha"
-    agendamentos = (
-        AgendamentoLaboratorio.query.options(joinedload(AgendamentoLaboratorio.laboratorio))
-        .filter_by(usuario_id=current_user.id)
-        .order_by(AgendamentoLaboratorio.inicio.desc())
-        .all()
-    )
     return render_template(
         "agenda/solicitar.html",
         laboratorios=laboratorios,
         turnos=TURNOS,
         hoje=date.today(),
         professor=current_user,
-        agendamentos=agendamentos,
         data_selecionada=data_selecionada,
         data_anterior=data_selecionada - timedelta(days=1),
         proxima_data=data_selecionada + timedelta(days=1),
@@ -605,6 +599,26 @@ def solicitar_professor():
         domingo=data_selecionada.weekday() == 6,
         sabado=data_selecionada.weekday() == 5,
     )
+
+
+@agenda_bp.route("/minhas-solicitacoes")
+@login_required
+def minhas_solicitacoes():
+    if current_user.perfil != "professor":
+        abort(403)
+    agendamentos = AgendamentoLaboratorio.query.options(joinedload(AgendamentoLaboratorio.laboratorio), joinedload(AgendamentoLaboratorio.atendido_por)).filter_by(usuario_id=current_user.id).order_by(AgendamentoLaboratorio.inicio.desc()).all()
+    return render_template("agenda/minhas_solicitacoes.html", agendamentos=agendamentos, status_labels=STATUS_LABELS)
+
+
+@agenda_bp.route("/<int:id>/detalhes")
+@login_required
+def detalhes_agendamento(id):
+    booking = AgendamentoLaboratorio.query.options(joinedload(AgendamentoLaboratorio.laboratorio), joinedload(AgendamentoLaboratorio.atendido_por), joinedload(AgendamentoLaboratorio.historicos).joinedload(HistoricoAgendamentoLaboratorio.usuario)).get_or_404(id)
+    if current_user.perfil == "professor" and booking.usuario_id != current_user.id:
+        abort(403)
+    if current_user.perfil not in SUPPORT_ROLES and booking.usuario_id != current_user.id:
+        abort(403)
+    return render_template("agenda/detalhes.html", booking=booking, status_labels=STATUS_LABELS)
 
 
 @agenda_bp.route("/novo", methods=["POST"])

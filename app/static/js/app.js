@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const sidebar = document.getElementById('appSidebar');
+  const brandToggle = document.getElementById('brandToggle');
   const menuToggle = document.getElementById('menuToggle');
   const backdrop = document.getElementById('sidebarBackdrop');
 
@@ -52,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window.innerWidth > 991) closeMenu();
     });
   }
+  brandToggle?.addEventListener('click', () => document.body.classList.toggle('sidebar-collapsed'));
 
   const currentPath = window.location.pathname.replace(/\/$/, '') || '/';
   const sidebarLinks = [...document.querySelectorAll('.sidebar-link')];

@@ -136,6 +136,8 @@ def create_app(config_overrides=None):
         allowed_endpoints = {
             "agendamento_laboratorios",
             "agenda.solicitar_professor",
+            "agenda.minhas_solicitacoes",
+            "agenda.detalhes_agendamento",
             "agenda.novo_agendamento",
             "auth.logout",
             "pwa_manifest",

@@ -46,6 +46,8 @@ a:hover { color: var(--primary-dark); }
   top: 0;
   z-index: 1030;
 }
+.brand-toggle { border: 0; text-align: left; width: 100%; }
+@media (min-width: 992px) { body.sidebar-collapsed .app-sidebar { width: 82px; } body.sidebar-collapsed .app-main { width: calc(100% - 82px); } body.sidebar-collapsed .brand-copy, body.sidebar-collapsed .profile-copy, body.sidebar-collapsed .sidebar-link span:not(.nav-icon), body.sidebar-collapsed .nav-label, body.sidebar-collapsed .sidebar-link-button span:not(.nav-icon) { display:none; } .lab-slot { min-height: 155px; padding: 18px; } .lab-slot-head strong { font-size: .9rem; } .lab-slot-head span { font-size: .65rem; } }
 
 .brand {
   align-items: center;
