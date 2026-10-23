@@ -30,10 +30,10 @@
     <div class="col-md-2 d-flex align-items-end">
       <button class="btn btn-outline-primary w-100" type="submit">Atualizar</button>
     </div>
+    <div class="col-12 d-flex flex-wrap gap-2 mt-1">
+      <button class="btn btn-success" type="submit" formaction="{{ url_for('agenda.relatorio_excel') }}">Baixar Excel</button>
+      <button class="btn btn-danger" type="submit" formaction="{{ url_for('agenda.relatorio_pdf') }}">Baixar PDF</button>
+    </div>
   </form>
-  <div class="d-flex flex-wrap gap-2 mt-4">
-    <a class="btn btn-success" href="{{ url_for('agenda.relatorio_excel', periodo=periodo, data=referencia.isoformat()) }}">Baixar Excel</a>
-    <a class="btn btn-danger" href="{{ url_for('agenda.relatorio_pdf', periodo=periodo, data=referencia.isoformat()) }}">Baixar PDF</a>
-  </div>
 </section>
 {% endblock %}
