@@ -59,6 +59,7 @@
           <div class="nav-label mt-3">Administração</div>
           {% if is_master_admin %}
           <a class="sidebar-link" href="{{ url_for('auth.listar_usuarios') }}"><span class="nav-icon">☷</span><span>Matrículas e acessos</span></a>
+          <a class="sidebar-link" href="{{ url_for('auth.auditoria') }}"><span class="nav-icon">◷</span><span>Auditoria</span></a>
           {% endif %}
           <a class="sidebar-link" href="{{ url_for('agenda.importar_excel') }}"><span class="nav-icon">⇧</span><span>Importar agenda</span></a>
           {% endif %}

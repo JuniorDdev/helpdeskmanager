@@ -6,7 +6,7 @@ from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db, limiter
-from app.models import Usuario
+from app.models import AuditoriaAdmin, Usuario
 from app.services.notifications import notify_support
 from app.utils.authz import master_admin_required, roles_required
 from app.utils.validation import ValidationError, choice, optional_text, required_text
@@ -352,6 +352,13 @@ def editar_usuario(id):
             flash(f"Cadastro de {usuario.nome} atualizado com sucesso.", "success")
             return redirect(url_for("auth.listar_usuarios", busca=usuario.matricula or usuario.email))
     return render_template("auth/editar_usuario.html", usuario=usuario, perfis=sorted(USER_PROFILES))
+
+
+@auth_bp.route("/auditoria")
+@master_admin_required
+def auditoria():
+    registros = AuditoriaAdmin.query.order_by(AuditoriaAdmin.criado_em.desc(), AuditoriaAdmin.id.desc()).limit(300).all()
+    return render_template("auth/auditoria.html", registros=registros)
 
 
 @auth_bp.route("/minha-matricula", methods=["GET", "POST"])

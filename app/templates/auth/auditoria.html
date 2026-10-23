@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Auditoria | Helpdesk Manager{% endblock %}
+{% block content %}
+<section class="page-heading"><div><span class="page-eyebrow">Administração</span><h1>Auditoria</h1><p>Últimas 300 alterações realizadas pela equipe.</p></div></section>
+<section class="agenda-panel"><div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Data/hora</th><th>Responsável</th><th>Matrícula</th><th>Módulo</th><th>Ação</th><th>Registro</th></tr></thead><tbody>{% for item in registros %}<tr><td>{{ item.criado_em.strftime('%d/%m/%Y %H:%M') if item.criado_em else '—' }}</td><td>{{ item.usuario.nome }}</td><td>{{ item.matricula or '—' }}</td><td>{{ item.modulo }}</td><td>{{ item.acao|capitalize }}</td><td>#{{ item.registro_id or '—' }}</td></tr>{% else %}<tr><td colspan="6" class="text-center text-muted py-4">Nenhuma ação registrada.</td></tr>{% endfor %}</tbody></table></div></section>
+{% endblock %}

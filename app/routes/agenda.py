@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -52,6 +52,10 @@ STATUS_LABELS = {
     "cancelado": "Cancelado",
     "excluido": "Excluído",
 }
+
+
+def utc_now():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 def report_period():
@@ -141,7 +145,7 @@ def claim_booking(booking):
         )
     if not booking.atendido_por_id:
         booking.atendido_por_id = current_user.id
-        booking.atendido_em = datetime.utcnow()
+        booking.atendido_em = utc_now()
         register_history(
             booking,
             "atendimento_assumido",
@@ -174,7 +178,7 @@ def notify_support(booking):
 
 def resolve_booking_notifications(booking):
     """Marca como lidos os avisos de uma solicitação que já recebeu tratativa."""
-    resolved_at = datetime.utcnow()
+    resolved_at = utc_now()
     NotificacaoAgenda.query.filter_by(agendamento_id=booking.id, lida_em=None).update(
         {NotificacaoAgenda.lida_em: resolved_at}, synchronize_session=False
     )
@@ -617,9 +621,9 @@ def novo_agendamento():
         db.session.flush()
         if reserva_interna:
             booking.atendido_por_id = current_user.id
-            booking.atendido_em = datetime.utcnow()
+            booking.atendido_em = utc_now()
             booking.confirmado_por_id = current_user.id
-            booking.confirmado_em = datetime.utcnow()
+            booking.confirmado_em = utc_now()
             register_history(
                 booking,
                 "agendamento_interno_criado",
@@ -738,7 +742,7 @@ def confirmar_agendamento(id):
         claim_booking(booking)
         booking.status = "agendado"
         booking.confirmado_por_id = current_user.id
-        booking.confirmado_em = datetime.utcnow()
+        booking.confirmado_em = utc_now()
         booking.motivo_decisao = optional_text(request.form, "motivo_decisao")
         register_history(booking, "agendamento_confirmado", booking.motivo_decisao or "Agendamento confirmado.")
         resolve_booking_notifications(booking)

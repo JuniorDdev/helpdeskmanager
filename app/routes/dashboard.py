@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 
 from flask import Blueprint, abort, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -10,6 +10,10 @@ from app.utils.authz import SUPPORT_ROLES
 
 
 dashboard_bp = Blueprint("dashboard", __name__)
+
+
+def utc_now():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 def visible_queries():
@@ -103,7 +107,7 @@ def marcar_notificacao_lida(id):
     if current_user.perfil not in SUPPORT_ROLES or notificacao.usuario_id != current_user.id:
         abort(403)
     if not notificacao.lida_em:
-        notificacao.lida_em = datetime.utcnow()
+        notificacao.lida_em = utc_now()
         db.session.commit()
     return redirect(request.form.get("retorno") or url_for("dashboard.notificacoes"))
 

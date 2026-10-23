@@ -31,8 +31,10 @@ def create_app(config_overrides=None):
     def registrar_auditoria(session, _context, _instances):
         if not has_request_context() or not current_user.is_authenticated or current_user.perfil not in {"admin", "tecnico"}:
             return
+        ignorados = {"auditoria_admin", "notificacoes", "notificacoes_agenda", "historico_agendamentos_laboratorio", "historico_chamados"}
+        pendentes = session.info.setdefault("auditoria_pendente", [])
         for item, acao in [(obj, "criado") for obj in session.new] + [(obj, "alterado") for obj in session.dirty] + [(obj, "excluido") for obj in session.deleted]:
-            if isinstance(item, AuditoriaAdmin) or not hasattr(item, "__tablename__"):
+            if isinstance(item, AuditoriaAdmin) or getattr(item, "__tablename__", None) in ignorados:
                 continue
             dados = {}
             if acao == "alterado":
@@ -41,7 +43,15 @@ def create_app(config_overrides=None):
                         dados[campo.key] = {"antes": str((campo.history.deleted or [""])[0]), "depois": str((campo.history.added or [""])[0])}
                 if not dados:
                     continue
-            session.add(AuditoriaAdmin(usuario_id=current_user.id, matricula=current_user.matricula or "", modulo=item.__tablename__, acao=acao, registro_id=getattr(item, "id", None), alteracoes=json.dumps(dados, ensure_ascii=False)))
+            auditoria = AuditoriaAdmin(usuario_id=current_user.id, matricula=current_user.matricula or "", modulo=item.__tablename__, acao=acao, registro_id=getattr(item, "id", None), alteracoes=json.dumps(dados, ensure_ascii=False))
+            session.add(auditoria)
+            if acao == "criado":
+                pendentes.append((auditoria, item))
+
+    @event.listens_for(Session, "after_flush")
+    def completar_auditoria(session, _context):
+        for auditoria, item in session.info.pop("auditoria_pendente", []):
+            auditoria.registro_id = getattr(item, "id", None)
     login_manager.init_app(app)
     csrf.init_app(app)
     migrate.init_app(app, db)
