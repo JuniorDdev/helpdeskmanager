@@ -15,6 +15,7 @@ from app.models.agenda import (
     HistoricoAgendamentoLaboratorio,
     Laboratorio,
     NotificacaoAgenda,
+    MensagemAgendamento,
     Recado,
 )
 from app.models.auditoria import AuditoriaAdmin

@@ -138,6 +138,7 @@ def create_app(config_overrides=None):
             "agenda.solicitar_professor",
             "agenda.minhas_solicitacoes",
             "agenda.detalhes_agendamento",
+            "agenda.mensagens_agendamento",
             "agenda.novo_agendamento",
             "auth.logout",
             "pwa_manifest",

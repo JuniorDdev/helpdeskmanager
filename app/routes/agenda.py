@@ -20,6 +20,7 @@ from app.models import (
     HistoricoAgendamentoLaboratorio,
     Laboratorio,
     NotificacaoAgenda,
+    MensagemAgendamento,
     NotificacaoSistema,
     Recado,
     Usuario,
@@ -156,6 +157,8 @@ def claim_booking(booking, allow_master_override=False):
 
 
 def notify_support(booking):
+    possui_software = bool(booking.softwares_necessarios)
+    complemento_software = " Há solicitação de software." if possui_software else ""
     recipients = Usuario.query.filter(
         Usuario.ativo.is_(True), Usuario.perfil.in_(SUPPORT_ROLES)
     ).all()
@@ -166,14 +169,15 @@ def notify_support(booking):
                 agendamento=booking,
                 mensagem=(
                     f"Nova solicitação {booking.protocolo}: {booking.professor_nome} "
-                    f"solicitou {booking.laboratorio.nome}."
+                    f"solicitou {booking.laboratorio.nome}.{complemento_software}"
                 ),
+                tipo="software" if possui_software else "solicitacao",
             )
         )
     notify_general_support(
         "agendamento",
         "Nova solicitação de agendamento",
-        f"{booking.professor_nome} solicitou {booking.laboratorio.nome} ({booking.protocolo}).",
+        f"{booking.professor_nome} solicitou {booking.laboratorio.nome} ({booking.protocolo}).{complemento_software}",
         url_for("agenda.index", data=booking.inicio.date().isoformat()),
     )
 
@@ -563,19 +567,39 @@ def solicitar_professor():
         )
         .all()
     )
+    minhas_reservas_ativas = (
+        AgendamentoLaboratorio.query.filter(
+            AgendamentoLaboratorio.usuario_id == current_user.id,
+            AgendamentoLaboratorio.status.in_(STATUS_ATIVOS),
+            AgendamentoLaboratorio.inicio < fim_dia,
+            AgendamentoLaboratorio.fim > inicio_dia,
+        )
+        .all()
+    )
     mapa_turnos = []
     for codigo, turno in TURNOS.items():
         inicio_turno = datetime.combine(data_selecionada, turno["inicio"])
         fim_turno = datetime.combine(data_selecionada, turno["fim"])
         slots = []
         for laboratorio in laboratorios:
+            reserva_propria = next(
+                (
+                    item
+                    for item in minhas_reservas_ativas
+                    if item.laboratorio_id == laboratorio.id
+                    and item.inicio < fim_turno
+                    and item.fim > inicio_turno
+                    and item.usuario_id == current_user.id
+                ),
+                None,
+            )
             ocupado = any(
                 item.laboratorio_id == laboratorio.id
                 and item.inicio < fim_turno
                 and item.fim > inicio_turno
                 for item in confirmados
             )
-            slots.append({"laboratorio": laboratorio, "ocupado": ocupado})
+            slots.append({"laboratorio": laboratorio, "ocupado": ocupado, "reserva_propria": reserva_propria})
         mapa_turnos.append({"codigo": codigo, "label": turno["label"], "periodo": f"{turno['inicio'].strftime('%H:%M')}–{turno['fim'].strftime('%H:%M')}", "slots": slots})
 
     preselected_lab_id = request.args.get("lab", type=int)
@@ -621,6 +645,25 @@ def detalhes_agendamento(id):
     if current_user.perfil not in SUPPORT_ROLES and booking.usuario_id != current_user.id:
         abort(403)
     return render_template("agenda/detalhes.html", booking=booking, status_labels=STATUS_LABELS)
+
+
+@agenda_bp.route("/<int:id>/mensagens", methods=["GET", "POST"])
+@login_required
+def mensagens_agendamento(id):
+    booking = AgendamentoLaboratorio.query.get_or_404(id)
+    if current_user.perfil == "professor" and booking.usuario_id != current_user.id:
+        abort(403)
+    if current_user.perfil not in SUPPORT_ROLES and booking.usuario_id != current_user.id:
+        abort(403)
+    if request.method == "POST":
+        try:
+            db.session.add(MensagemAgendamento(agendamento_id=booking.id, autor_id=current_user.id, mensagem=required_text(request.form, "mensagem", "Mensagem")))
+            db.session.commit()
+            flash("Mensagem enviada.", "success")
+        except (ValidationError, SQLAlchemyError) as error:
+            db.session.rollback(); flash(str(error) if isinstance(error, ValidationError) else "Não foi possível enviar a mensagem.", "danger")
+    mensagens = MensagemAgendamento.query.options(joinedload(MensagemAgendamento.autor)).filter_by(agendamento_id=booking.id).order_by(MensagemAgendamento.criado_em).all()
+    return render_template("agenda/mensagens.html", booking=booking, mensagens=mensagens)
 
 
 @agenda_bp.route("/novo", methods=["POST"])

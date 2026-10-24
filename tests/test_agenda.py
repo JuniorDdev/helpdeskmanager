@@ -10,6 +10,7 @@ from app.models import (
     AgendamentoLaboratorio,
     HistoricoAgendamentoLaboratorio,
     Laboratorio,
+    MensagemAgendamento,
     NotificacaoAgenda,
     NotificacaoSistema,
     Recado,
@@ -547,6 +548,35 @@ class AgendaRoutesTestCase(unittest.TestCase):
         self.assertIn(b"Hor\xc3\xa1rio j\xc3\xa1 reservado", response.data)
         self.assertNotIn(b"Outro Usu\xc3\xa1rio", response.data)
         self.assertIn(b"lab=2", response.data)
+
+    def test_professor_visualiza_apenas_a_propria_reserva_e_envia_mensagem(self):
+        with self.app.app_context():
+            reserva = AgendamentoLaboratorio(
+                laboratorio_id=self.laboratorio_id,
+                usuario_id=self.professor_id,
+                titulo="Aula da professora",
+                professor_nome="Professora Teste",
+                professor_matricula="0-000000",
+                quantidade_alunos=10,
+                inicio=datetime(2030, 3, 15, 8, 0),
+                fim=datetime(2030, 3, 15, 12, 0),
+                status="solicitado",
+            )
+            db.session.add(reserva)
+            db.session.commit()
+            reserva_id = reserva.id
+
+        self.login(self.professor_id)
+        mapa = self.client.get("/agendamento-laboratorios?data=2030-03-15")
+        self.assertIn(b"Aula da professora", mapa.data)
+        self.assertEqual(self.client.get(f"/agendamentos/{reserva_id}/mensagens").status_code, 200)
+        envio = self.client.post(
+            f"/agendamentos/{reserva_id}/mensagens",
+            data={"mensagem": "Preciso confirmar a vers\xc3\xa3o do software."},
+        )
+        self.assertEqual(envio.status_code, 200)
+        with self.app.app_context():
+            self.assertEqual(MensagemAgendamento.query.filter_by(agendamento_id=reserva_id).count(), 1)
 
     def test_professor_entra_com_matricula_e_senha(self):
         with self.app.app_context():

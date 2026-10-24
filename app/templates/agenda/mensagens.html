@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Mensagens da solicitação | Helpdesk Manager{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div><span class="page-eyebrow">{{ booking.protocolo }}</span><h1>Mensagens da solicitação</h1><p>Canal de comunicação entre o professor e a equipe responsável.</p></div>
+  <div class="page-actions"><a class="btn btn-outline-secondary" href="{{ url_for('agenda.detalhes_agendamento', id=booking.id) }}">Voltar aos detalhes</a></div>
+</section>
+<section class="agenda-panel mb-4"><strong>{{ booking.laboratorio.nome }}</strong> · {{ booking.inicio.strftime('%d/%m/%Y') }} · {{ booking.turno_label }} · {{ booking.titulo }}</section>
+<section class="agenda-panel mb-4">
+  {% for item in mensagens %}
+  <article class="notice-card mb-2 {% if item.autor_id == current_user.id %}priority-importante{% endif %}"><strong>{{ item.autor.nome }}</strong><small class="text-muted ms-2">{{ item.criado_em.strftime('%d/%m/%Y %H:%M') }}</small><p class="mb-0 mt-1" style="white-space: pre-wrap">{{ item.mensagem }}</p></article>
+  {% else %}<div class="agenda-empty compact"><strong>Nenhuma mensagem ainda.</strong><p>Use este canal para alinhar esta solicitação.</p></div>{% endfor %}
+</section>
+<section class="form-card"><form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label class="form-label" for="mensagem">Nova mensagem</label><textarea id="mensagem" class="form-control" name="mensagem" rows="4" maxlength="3000" required placeholder="Escreva uma mensagem sobre esta solicitação."></textarea><button class="btn btn-primary mt-3" type="submit">Enviar mensagem</button></form></section>
+{% endblock %}

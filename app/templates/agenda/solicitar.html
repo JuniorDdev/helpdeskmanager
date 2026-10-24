@@ -30,7 +30,10 @@
         {% for slot in turno.slots %}
         <article class="lab-slot {{ 'is-occupied' if slot.ocupado else 'is-free' }}">
           <div class="lab-slot-head"><strong>{{ slot.laboratorio.nome }}</strong><span>{{ 'Agendado' if slot.ocupado else 'Disponível' }}</span></div>
-          {% if slot.ocupado %}
+          {% if slot.reserva_propria %}
+          <button class="slot-booking professor-booking" type="button" data-bs-toggle="modal" data-bs-target="#minhaReservaModal{{ slot.reserva_propria.id }}" aria-label="Abrir minha solicitação {{ slot.reserva_propria.protocolo }}"><strong>{{ slot.reserva_propria.titulo }}</strong><small>{{ slot.reserva_propria.protocolo }} · {{ {'solicitado': 'Em análise', 'agendado': 'Confirmado', 'recusado': 'Recusado', 'cancelado': 'Cancelado', 'excluido': 'Excluído'}[slot.reserva_propria.status] }}</small><small>Toque para ver detalhes</small></button>
+          <div class="modal fade" id="minhaReservaModal{{ slot.reserva_propria.id }}" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><div><small class="text-muted">{{ slot.reserva_propria.protocolo }}</small><h2 class="h5 mb-0">{{ slot.reserva_propria.titulo }}</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button></div><div class="modal-body"><p><strong>{{ slot.laboratorio.nome }}</strong> · {{ slot.reserva_propria.inicio.strftime('%d/%m/%Y') }} · {{ slot.reserva_propria.turno_label }}</p><p><strong>Status:</strong> {{ {'solicitado': 'Em análise', 'agendado': 'Confirmado', 'recusado': 'Recusado', 'cancelado': 'Cancelado', 'excluido': 'Excluído'}[slot.reserva_propria.status] }}</p><p><strong>Observações:</strong><br>{{ slot.reserva_propria.finalidade or 'Nenhuma observação.' }}</p>{% if slot.reserva_propria.softwares_necessarios %}<p><strong>Softwares solicitados:</strong><br>{{ slot.reserva_propria.softwares_necessarios }}</p>{% endif %}{% if slot.reserva_propria.motivo_decisao %}<p><strong>Retorno da equipe:</strong><br>{{ slot.reserva_propria.motivo_decisao }}</p>{% endif %}</div><div class="modal-footer d-grid gap-2 d-sm-flex"><a class="btn btn-outline-primary" href="{{ url_for('agenda.detalhes_agendamento', id=slot.reserva_propria.id) }}">Detalhes</a><a class="btn btn-primary" href="{{ url_for('agenda.mensagens_agendamento', id=slot.reserva_propria.id) }}">Mensagens</a></div></div></div></div>
+          {% elif slot.ocupado %}
           <div class="slot-booking professor-booking"><small>Horário já reservado</small><small>Sem edição disponível</small></div>
           {% elif domingo or (sabado and turno.codigo == 'noite') %}
           <span class="slot-reserve-link disabled">{{ 'Indisponível aos domingos' if domingo else 'Indisponível aos sábados à noite' }}</span>
@@ -57,7 +60,7 @@
     <div class="col-md-4"><label class="form-label" for="laboratorio">Laboratório</label><select id="laboratorio" name="laboratorio_id" class="form-select" required>{% for laboratorio in laboratorios %}<option value="{{ laboratorio.id }}" {% if laboratorio.id == preselected_lab_id %}selected{% endif %}>{{ laboratorio.nome }}{% if laboratorio.capacidade %} ({{ laboratorio.capacidade }} computadores){% endif %}</option>{% endfor %}</select></div>
     <div class="col-md-4"><label class="form-label" for="alunos">Quantidade de alunos</label><input id="alunos" name="quantidade_alunos" type="number" min="1" class="form-control" required></div>
     <div class="col-12"><label class="form-label" for="observacoes">Observações</label><textarea id="observacoes" name="finalidade" class="form-control" rows="3" placeholder="Equipamentos necessários ou outras informações."></textarea></div>
-    <div class="col-12"><label class="form-label" for="softwares">Softwares necessários</label><textarea id="softwares" name="softwares_necessarios" class="form-control" rows="2" placeholder="Ex.: AutoCAD, Visual Studio Code, Java."></textarea></div>
+    <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="precisaSoftware"><label class="form-check-label" for="precisaSoftware">Preciso solicitar instalação ou configuração de software</label></div></div><div class="col-12 d-none" id="campoSoftwares"><label class="form-label" for="softwares">Quais aplicativos ou versões?</label><textarea id="softwares" name="softwares_necessarios" class="form-control" rows="2" placeholder="Ex.: AutoCAD, Visual Studio Code, Java."></textarea></div>
     <div class="col-12"><button class="btn btn-primary" type="submit" {% if domingo %}disabled{% endif %}>Enviar solicitação</button></div>
   </form>
 </div>
@@ -74,3 +77,4 @@
 {% endif %}
 {% endif %}
 {% endblock %}
+{% block scripts %}<script>const c=document.getElementById('precisaSoftware'), f=document.getElementById('campoSoftwares'), s=document.getElementById('softwares');c?.addEventListener('change',()=>{f.classList.toggle('d-none',!c.checked);s.required=c.checked});</script>{% endblock %}

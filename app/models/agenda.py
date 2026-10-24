@@ -108,6 +108,17 @@ class NotificacaoAgenda(db.Model):
     agendamento = db.relationship("AgendamentoLaboratorio", backref="notificacoes")
 
 
+class MensagemAgendamento(db.Model):
+    __tablename__ = "mensagens_agendamento"
+    id = db.Column(db.Integer, primary_key=True)
+    agendamento_id = db.Column(db.Integer, db.ForeignKey("agendamentos_laboratorio.id"), nullable=False, index=True)
+    autor_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False)
+    mensagem = db.Column(db.Text, nullable=False)
+    criado_em = db.Column(db.DateTime, server_default=db.func.now(), nullable=False)
+    agendamento = db.relationship("AgendamentoLaboratorio", backref="mensagens")
+    autor = db.relationship("Usuario")
+
+
 class Recado(db.Model):
     __tablename__ = "recados"
     __table_args__ = (
