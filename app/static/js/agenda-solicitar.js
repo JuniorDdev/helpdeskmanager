@@ -9,6 +9,11 @@
   const ilhaCodigo = document.getElementById('ilhaCodigo');
   const orientacao = document.getElementById('orientacaoCapacidade');
   const sugestao = document.getElementById('opcaoSugerida');
+  const campoLaboratorio = laboratorio.closest('.col-12');
+  const resumoIlha = document.createElement('div');
+  resumoIlha.className = 'col-12';
+  resumoIlha.hidden = true;
+  campoLaboratorio.parentNode.insertBefore(resumoIlha, campoLaboratorio);
   const software = document.getElementById('precisaSoftware');
   const softwareField = document.getElementById('campoSoftwares');
   const softwareText = document.getElementById('softwares');
@@ -22,6 +27,7 @@
     const quantidade = Number(alunos.value || 0);
     const atual = disponibilidade[turno.value] || { laboratorios_disponiveis: [], ilhas_disponiveis: {} };
     const requerIlha = quantidade >= 33 && quantidade <= 56;
+    const ilhaSelecionada = requerIlha && Boolean(ilhaCodigo.value);
     let nomes = [];
     let texto = 'Informe a quantidade para ver as opções.';
     if (quantidade > 0 && quantidade <= 24) {
@@ -45,6 +51,7 @@
     const primeira = [...laboratorio.options].find((opcao) => !opcao.disabled);
     laboratorio.disabled = requerIlha || !primeira;
     laboratorio.required = !requerIlha;
+    campoLaboratorio.hidden = requerIlha;
     if (!requerIlha && primeira) laboratorio.value = primeira.value;
     if (!requerIlha) ilhaCodigo.value = '';
 
@@ -60,11 +67,20 @@
     } else {
       sugestao.innerHTML = '';
     }
+    resumoIlha.hidden = !ilhaSelecionada;
+    if (ilhaSelecionada) {
+      const nomeIlha = ilhaCodigo.value === 'ilha-a' ? 'Ilha A' : 'Ilha B';
+      const labs = ilhaCodigo.value === 'ilha-a' ? 'Labs 05 e 06' : 'Labs 07 e 08';
+      resumoIlha.innerHTML = `<div class="alert alert-primary mb-0"><strong>Reserva selecionada: ${nomeIlha} — ${labs}</strong><br><span>Os dois laboratórios serão solicitados juntos, com capacidade para até 56 alunos.</span><div class="mt-2"><button type="button" class="btn btn-sm btn-outline-primary" data-alterar-ilha>Alterar ilha</button></div></div>`;
+    } else {
+      resumoIlha.innerHTML = '';
+    }
     orientacao.textContent = texto;
   }
 
   function escolherIlha(codigo) {
     ilhaCodigo.value = codigo;
+    atualizarOpcoes();
     orientacao.textContent = `${codigo === 'ilha-a' ? 'Ilha A (Labs 05 e 06)' : 'Ilha B (Labs 07 e 08)'} selecionada.`;
     document.getElementById('formulario-agendamento').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
@@ -75,6 +91,12 @@
     if (evento.target.value) window.location = `${configElement.dataset.urlBase}?data=${evento.target.value}`;
   });
   document.addEventListener('click', (evento) => {
+    if (evento.target.closest('[data-alterar-ilha]')) {
+      ilhaCodigo.value = '';
+      atualizarOpcoes();
+      sugestao.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     const escolha = evento.target.closest('[data-ilha-choice],[data-ilha-form]');
     if (!escolha) return;
     const quantidade = Number(alunos.value || 0);
