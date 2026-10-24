@@ -1,9 +1,10 @@
-const CACHE_NAME = 'helpdesk-manager-shell-v2';
+const CACHE_NAME = 'helpdesk-manager-shell-v3';
 const APP_SHELL = [
   '/offline.html',
   '/manifest.webmanifest',
   '/static/css/style.css',
   '/static/js/app.js',
+  '/static/js/agenda-solicitar.js',
   '/static/icons/helpdesk-icon.svg',
 ];
 

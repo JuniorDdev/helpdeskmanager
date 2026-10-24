@@ -1,63 +1,11 @@
 {% extends 'base.html' %}
 {% block title %}Solicitar laboratório | Helpdesk Manager{% endblock %}
 {% block content %}
-<section class="page-heading"><div><span class="page-eyebrow">Agendamento de laboratórios</span><h1>Agendamentos de laboratório</h1><p>Informe a turma, escolha o turno e selecione a opção compatível disponível.</p></div></section>
+<section class="page-heading"><span class="page-eyebrow">Agendamento de laboratórios</span><h1>Agendamentos de laboratório</h1><p>Informe a turma, escolha o turno e selecione a opção compatível disponível.</p></section>
 {% if domingo %}<div class="alert alert-warning">Os laboratórios não recebem agendamentos aos domingos.</div>{% endif %}{% if sabado %}<div class="alert alert-info">Aos sábados, o turno da noite não recebe agendamentos.</div>{% endif %}
 <section class="agenda-panel professor-availability mb-4"><div class="agenda-panel-header"><div><span class="page-eyebrow">Disponibilidade</span><h2>Mapa de laboratórios</h2></div><span class="agenda-count">{{ data_selecionada.strftime('%d/%m/%Y') }}</span></div><p class="small text-muted mb-3"><strong>1–24:</strong> Labs 06 e 07. <strong>25–32:</strong> Labs 05 e 08. <strong>33–56:</strong> Ilha A ou Ilha B.</p><div class="agenda-datebar professor-datebar"><a class="date-nav" href="{{ url_for('agendamento_laboratorios', data=data_anterior.isoformat()) }}">‹</a><form method="get" class="agenda-date-form"><input name="data" type="date" min="{{ hoje.isoformat() }}" value="{{ data_selecionada.isoformat() }}" class="form-control"><button class="btn btn-outline-primary" type="submit">Ver data</button></form><a class="date-nav" href="{{ url_for('agendamento_laboratorios', data=proxima_data.isoformat()) }}">›</a></div><div class="shift-map professor-shift-map">
 {% for turno in mapa_turnos %}<section class="shift-section"><header class="shift-header"><span class="shift-icon">{{ '☀' if turno.codigo == 'manha' else ('◐' if turno.codigo == 'tarde' else '☾') }}</span><div><strong>{{ turno.label }}</strong><small>{{ turno.periodo }}</small></div></header><div class="lab-slot-grid">{% for slot in turno.slots %}<article class="lab-slot {{ 'is-occupied' if slot.ocupado else 'is-free' }}" data-lab-card data-lab-id="{{ slot.laboratorio.id }}" data-turno="{{ turno.codigo }}"><div class="lab-slot-head"><strong>{{ slot.laboratorio.nome }}</strong><span>{{ 'Agendado' if slot.ocupado else 'Disponível' }}</span></div>{% if slot.laboratorio.capacidade %}<small class="lab-capacity">Até {{ slot.laboratorio.capacidade }} alunos</small>{% endif %}{% if slot.reserva_propria %}<div class="slot-booking professor-booking"><strong>{{ slot.reserva_propria.titulo }}</strong><small>{{ slot.reserva_propria.protocolo }} · Em análise</small></div>{% elif slot.ocupado %}<div class="slot-booking professor-booking"><small>Horário já reservado</small></div>{% elif domingo or (sabado and turno.codigo == 'noite') %}<span class="slot-reserve-link disabled">Indisponível</span>{% else %}<button class="slot-reserve-link slot-choice" type="button" data-lab-choice="{{ slot.laboratorio.id }}" data-turno="{{ turno.codigo }}">Selecionar este horário</button>{% endif %}</article>{% endfor %}</div><div class="ilha-options" data-ilhas-turno="{{ turno.codigo }}"><strong>Turmas de 33 a 56 alunos</strong><small>Selecione uma ilha completa; os dois laboratórios serão tratados juntos.</small><div class="ilha-grid">{% for ilha in turno.ilhas %}<button type="button" class="ilha-choice {{ 'is-unavailable' if not ilha.disponivel else '' }}" data-ilha-choice="{{ ilha.codigo }}" data-turno="{{ turno.codigo }}" {% if not ilha.disponivel %}disabled{% endif %}><strong>{{ ilha.configuracao.nome }}</strong><span>{{ ilha.laboratorios[0].nome }} + {{ ilha.laboratorios[1].nome }}</span><small>Até {{ ilha.configuracao.capacidade }} alunos · {{ 'Disponível' if ilha.disponivel else 'Indisponível' }}</small></button>{% endfor %}</div></div></section>{% endfor %}</div></section>
 <div class="form-card agenda-form-card" id="formulario-agendamento"><form method="post" action="{{ url_for('agenda.novo_agendamento') }}" class="row g-3"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="data_retorno" value="{{ data_selecionada.isoformat() }}"><input type="hidden" name="ilha_codigo" id="ilhaCodigo"><div class="col-md-6"><label class="form-label" for="nome">Nome do professor</label><input id="nome" name="professor_nome" class="form-control" value="{{ professor.nome }}" required></div><div class="col-md-6"><label class="form-label" for="matricula">Matrícula</label><input id="matricula" name="professor_matricula" class="form-control" value="{{ professor.matricula or '' }}" required></div><div class="col-12"><label class="form-label" for="titulo">Disciplina ou atividade</label><input id="titulo" name="titulo" class="form-control" required></div><div class="col-md-4"><label class="form-label" for="data">Data</label><input id="data" name="data_reserva" type="date" class="form-control" min="{{ hoje.isoformat() }}" value="{{ data_selecionada.isoformat() }}" required></div><div class="col-md-4"><label class="form-label" for="turno">Turno</label><select id="turno" name="turno" class="form-select" required>{% for codigo, turno in turnos.items() %}<option value="{{ codigo }}" {% if sabado and codigo == 'noite' %}disabled{% endif %} {% if codigo == preselected_turno %}selected{% endif %}>{{ turno.label }} · {{ turno.inicio.strftime('%H:%M') }}–{{ turno.fim.strftime('%H:%M') }}</option>{% endfor %}</select></div><div class="col-md-4"><label class="form-label" for="alunos">Quantidade de alunos</label><input id="alunos" name="quantidade_alunos" type="number" min="1" max="56" class="form-control" required><div class="form-text" id="orientacaoCapacidade" aria-live="polite">Informe a quantidade para ver as opções.</div></div><div class="col-12" id="opcaoSugerida" hidden></div><div class="col-12"><label class="form-label" for="laboratorio">Laboratório compatível</label><select id="laboratorio" name="laboratorio_id" class="form-select" required>{% for laboratorio in laboratorios %}<option value="{{ laboratorio.id }}" data-nome="{{ laboratorio.nome }}">{{ laboratorio.nome }}{% if laboratorio.capacidade %} — até {{ laboratorio.capacidade }} alunos{% endif %}</option>{% endfor %}</select><div class="form-text">A lista mostra somente opções compatíveis e livres no turno escolhido.</div></div><div class="col-12"><label class="form-label" for="observacoes">Observações</label><textarea id="observacoes" name="finalidade" class="form-control" rows="3"></textarea></div><div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="precisaSoftware"><label class="form-check-label" for="precisaSoftware">Preciso solicitar instalação ou configuração de software</label></div></div><div class="col-12 d-none" id="campoSoftwares"><label class="form-label" for="softwares">Quais aplicativos ou versões?</label><textarea id="softwares" name="softwares_necessarios" class="form-control" rows="2"></textarea></div><div class="col-12"><button class="btn btn-primary" type="submit" {% if domingo %}disabled{% endif %}>Enviar solicitação</button></div></form></div>
+<div id="agendaConfiguracao" hidden data-disponibilidade="{{ disponibilidade_formulario|tojson|forceescape }}" data-url-base="{{ url_for('agendamento_laboratorios') }}"></div>
 {% endblock %}
-{% block scripts %}<script>
-const disponibilidade={{ disponibilidade_formulario|tojson }},alunos=document.getElementById('alunos'),turno=document.getElementById('turno'),laboratorio=document.getElementById('laboratorio'),ilhaCodigo=document.getElementById('ilhaCodigo'),orientacao=document.getElementById('orientacaoCapacidade'),sugestao=document.getElementById('opcaoSugerida');const software=document.getElementById('precisaSoftware'),softwareField=document.getElementById('campoSoftwares'),softwareText=document.getElementById('softwares');software.addEventListener('change',()=>{softwareField.classList.toggle('d-none',!software.checked);softwareText.required=software.checked});
-function opcoes() {
-  const quantidade = Number(alunos.value || 0);
-  const atual = disponibilidade[turno.value] || { laboratorios_disponiveis: [], ilhas_disponiveis: {} };
-  const requerIlha = quantidade >= 33 && quantidade <= 56;
-  let nomes = [];
-  let texto = 'Informe a quantidade para ver as opções.';
-  if (quantidade > 0 && quantidade <= 24) { nomes = ['Lab 06', 'Lab 07']; texto = 'Sugestão: escolha Lab 06 ou Lab 07 disponível neste turno.'; }
-  else if (quantidade >= 25 && quantidade <= 32) { nomes = ['Lab 05', 'Lab 08']; texto = 'Sugestão: escolha Lab 05 ou Lab 08 disponível neste turno.'; }
-  else if (requerIlha) texto = 'Turma grande: selecione uma ilha disponível abaixo.';
-  else if (quantidade > 56) texto = 'A capacidade máxima das ilhas é de 56 alunos.';
-  const livres = new Set(atual.laboratorios_disponiveis);
-  [...laboratorio.options].forEach((opcao) => { const permitida = !requerIlha && nomes.includes(opcao.dataset.nome) && livres.has(Number(opcao.value)); opcao.hidden = !permitida; opcao.disabled = !permitida; });
-  const primeira = [...laboratorio.options].find((opcao) => !opcao.disabled);
-  laboratorio.disabled = requerIlha || !primeira;
-  laboratorio.required = !requerIlha;
-  if (!requerIlha && primeira) laboratorio.value = primeira.value;
-  if (!requerIlha) ilhaCodigo.value = '';
-  document.querySelectorAll('[data-ilhas-turno]').forEach((item) => item.classList.toggle('is-active', requerIlha && item.dataset.ilhasTurno === turno.value));
-  sugestao.hidden = !requerIlha;
-  if (requerIlha) {
-    const botoes = [];
-    for (const [codigo, livre] of Object.entries(atual.ilhas_disponiveis)) if (livre) botoes.push(`<button type="button" class="btn btn-outline-primary me-2 mb-2" data-ilha-form="${codigo}">${codigo === 'ilha-a' ? 'Ilha A — Labs 05 e 06' : 'Ilha B — Labs 07 e 08'}</button>`);
-    sugestao.innerHTML = botoes.join('') || '<div class="alert alert-warning mb-0">Nenhuma ilha está disponível neste turno.</div>';
-  } else sugestao.innerHTML = '';
-  orientacao.textContent = texto;
-}
-function escolherIlha(codigo) {
-  ilhaCodigo.value = codigo;
-  orientacao.textContent = `${codigo === 'ilha-a' ? 'Ilha A (Labs 05 e 06)' : 'Ilha B (Labs 07 e 08)'} selecionada.`;
-  document.getElementById('formulario-agendamento').scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
-alunos.addEventListener('input', opcoes);
-turno.addEventListener('change', opcoes);
-document.getElementById('data').addEventListener('change', (evento) => { if (evento.target.value) window.location = `{{ url_for('agendamento_laboratorios') }}?data=${evento.target.value}`; });
-document.addEventListener('click', (evento) => {
-  const escolha = evento.target.closest('[data-ilha-choice],[data-ilha-form]');
-  if (!escolha) return;
-  const quantidade = Number(alunos.value || 0);
-  if (quantidade < 33 || quantidade > 56) { orientacao.textContent = 'Informe entre 33 e 56 alunos para selecionar uma ilha.'; alunos.focus(); return; }
-  if (escolha.dataset.turno) turno.value = escolha.dataset.turno;
-  escolherIlha(escolha.dataset.ilhaChoice || escolha.dataset.ilhaForm);
-});
-document.querySelectorAll('[data-lab-choice]').forEach((botao) => {
-  botao.addEventListener('click', () => {
-    turno.value = botao.dataset.turno;
-    opcoes();
-    laboratorio.value = botao.dataset.labChoice;
-    document.getElementById('formulario-agendamento').scrollIntoView({ behavior: 'smooth', block: 'center' });
-  });
-});
-opcoes();
-</script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/agenda-solicitar.js') }}" defer></script>{% endblock %}
