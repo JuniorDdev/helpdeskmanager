@@ -46,7 +46,7 @@ a:hover { color: var(--primary-dark); }
   top: 0;
   z-index: 1030;
 }
-@media (min-width: 992px) { .lab-slot { min-height: 155px; padding: 18px; } .lab-slot-head strong { font-size: .9rem; } .lab-slot-head span { font-size: .65rem; } }
+@media (min-width: 992px) { .lab-slot { min-height: 178px; padding: 19px; } .lab-slot-head strong { font-size: .96rem; } .lab-slot-head span { font-size: .67rem; } .slot-reserve-link { font-size: .78rem; min-height: 64px; } .slot-booking h3 { font-size: .84rem; } .slot-booking p { font-size: .7rem; } .slot-booking small { font-size: .66rem; } }
 
 .brand {
   align-items: center;
@@ -351,15 +351,16 @@ main > h2,
 .shift-header small { color: var(--muted); font-size: .61rem; margin-top: 3px; }
 .lab-slot-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(145px, 1fr));
-  overflow-x: auto;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .lab-slot {
   border-right: 1px solid #edf0f5;
+  border-bottom: 1px solid #edf0f5;
   min-height: 132px;
   padding: 11px;
 }
-.lab-slot:last-child { border-right: 0; }
+.lab-slot:nth-child(4n) { border-right: 0; }
+.lab-slot:nth-last-child(-n + 4) { border-bottom: 0; }
 .lab-slot.is-free { background: #fbfefd; }
 .lab-slot.is-occupied { background: #fffafb; }
 .lab-slot.is-pending { background: #fffdf4; }
@@ -560,7 +561,11 @@ main > h2,
   .agenda-datebar { align-items: stretch; flex-wrap: wrap; }
   .agenda-date-form { order: 2; width: 100%; }
   .agenda-date-form .form-control { flex: 1; min-width: 0; }
-  .lab-slot-grid { grid-template-columns: repeat(5, minmax(155px, 1fr)); }
+  .lab-slot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lab-slot { min-height: 145px; }
+  .lab-slot:nth-child(2n) { border-right: 0; }
+  .lab-slot:nth-last-child(-n + 4) { border-bottom: 1px solid #edf0f5; }
+  .lab-slot:nth-last-child(-n + 2) { border-bottom: 0; }
   .schedule-item { gap: 9px; grid-template-columns: 48px 3px minmax(0, 1fr); }
   .schedule-title-row { display: block; }
   .schedule-actions { margin-top: 10px; }
