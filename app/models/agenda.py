@@ -26,6 +26,8 @@ class AgendamentoLaboratorio(db.Model):
     laboratorio_id = db.Column(
         db.Integer, db.ForeignKey("laboratorios.id"), nullable=False, index=True
     )
+    laboratorio_secundario_id = db.Column(db.Integer, db.ForeignKey("laboratorios.id"), index=True)
+    ilha_codigo = db.Column(db.String(30), index=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False, index=True)
     professor_nome = db.Column(db.String(120), nullable=False, default="")
     professor_matricula = db.Column(db.String(60), nullable=False, default="")
@@ -51,7 +53,8 @@ class AgendamentoLaboratorio(db.Model):
         db.DateTime, server_default=db.func.now(), onupdate=db.func.now(), nullable=False
     )
 
-    laboratorio = db.relationship("Laboratorio", backref="agendamentos")
+    laboratorio = db.relationship("Laboratorio", foreign_keys=[laboratorio_id], backref="agendamentos")
+    laboratorio_secundario = db.relationship("Laboratorio", foreign_keys=[laboratorio_secundario_id])
     usuario = db.relationship("Usuario", foreign_keys=[usuario_id], backref="agendamentos_laboratorio")
     atendido_por = db.relationship("Usuario", foreign_keys=[atendido_por_id])
     confirmado_por = db.relationship("Usuario", foreign_keys=[confirmado_por_id])
@@ -73,6 +76,21 @@ class AgendamentoLaboratorio(db.Model):
     @property
     def protocolo(self):
         return f"AGD-{self.id:05d}" if self.id else "AGD-pendente"
+
+    @property
+    def laboratorios_reservados(self):
+        return [laboratorio for laboratorio in (self.laboratorio, self.laboratorio_secundario) if laboratorio]
+
+    @property
+    def laboratorio_label(self):
+        if self.laboratorio_secundario:
+            prefixo = "Ilha A" if self.ilha_codigo == "ilha-a" else "Ilha B"
+            return f"{prefixo} ({self.laboratorio.nome} + {self.laboratorio_secundario.nome})"
+        return self.laboratorio.nome if self.laboratorio else "Laboratório"
+
+    @property
+    def capacidade_reserva(self):
+        return sum(laboratorio.capacidade or 0 for laboratorio in self.laboratorios_reservados)
 
 
 class HistoricoAgendamentoLaboratorio(db.Model):

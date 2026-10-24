@@ -547,7 +547,7 @@ class AgendaRoutesTestCase(unittest.TestCase):
         response = self.client.get("/agendamento-laboratorios?data=2030-03-15")
         self.assertIn(b"Hor\xc3\xa1rio j\xc3\xa1 reservado", response.data)
         self.assertNotIn(b"Outro Usu\xc3\xa1rio", response.data)
-        self.assertIn(b"lab=2", response.data)
+        self.assertIn(b'data-lab-choice="2"', response.data)
 
     def test_professor_visualiza_apenas_a_propria_reserva_e_envia_mensagem(self):
         with self.app.app_context():
@@ -577,6 +577,67 @@ class AgendaRoutesTestCase(unittest.TestCase):
         self.assertEqual(envio.status_code, 200)
         with self.app.app_context():
             self.assertEqual(MensagemAgendamento.query.filter_by(agendamento_id=reserva_id).count(), 1)
+
+    def test_professor_pode_solicitar_ilha_e_bloqueia_os_dois_laboratorios(self):
+        with self.app.app_context():
+            labs = {}
+            for numero, capacidade in ((5, 32), (6, 24), (7, 24), (8, 32)):
+                laboratorio = Laboratorio.query.filter_by(nome=f"Lab {numero:02d}").first()
+                if not laboratorio:
+                    laboratorio = Laboratorio(nome=f"Lab {numero:02d}", capacidade=capacidade, ativo=True)
+                    db.session.add(laboratorio)
+                else:
+                    laboratorio.capacidade = capacidade
+                labs[numero] = laboratorio
+            db.session.commit()
+            lab_05_id = labs[5].id
+            lab_06_id = labs[6].id
+
+        self.login(self.professor_id)
+        resposta = self.client.post(
+            "/agendamentos/novo",
+            data={
+                "titulo": "Turma integrada",
+                "professor_nome": "Professora Teste",
+                "professor_matricula": "0-000000",
+                "quantidade_alunos": "40",
+                "laboratorio_id": lab_05_id,
+                "ilha_codigo": "ilha-a",
+                "data_reserva": "2030-03-15",
+                "turno": "manha",
+            },
+        )
+        self.assertEqual(resposta.status_code, 302)
+        with self.app.app_context():
+            ilha = AgendamentoLaboratorio.query.one()
+            ilha_id = ilha.id
+            self.assertEqual(ilha.ilha_codigo, "ilha-a")
+            self.assertEqual(ilha.laboratorio_secundario_id, lab_06_id)
+            self.assertEqual(ilha.laboratorio_label, "Ilha A (Lab 05 + Lab 06)")
+
+        self.login(self.outro_id)
+        fila_regular = self.client.post(
+            "/agendamentos/novo",
+            data={
+                "titulo": "Conflito com ilha",
+                "professor_nome": "Outro Usuário",
+                "professor_matricula": "MAT-002",
+                "quantidade_alunos": "10",
+                "laboratorio_id": lab_06_id,
+                "data_reserva": "2030-03-15",
+                "turno": "manha",
+            },
+        )
+        self.assertEqual(fila_regular.status_code, 302)
+        with self.app.app_context():
+            self.assertEqual(AgendamentoLaboratorio.query.count(), 2)
+
+        self.login(self.admin_id)
+        self.client.post(f"/agendamentos/{ilha_id}/confirmar")
+        with self.app.app_context():
+            ilha = db.session.get(AgendamentoLaboratorio, ilha_id)
+            self.assertEqual(ilha.status, "agendado")
+            self.assertIsNotNone(ilha.laboratorio_secundario_id)
 
     def test_professor_entra_com_matricula_e_senha(self):
         with self.app.app_context():

@@ -22,6 +22,8 @@ def ensure_agenda_schema():
         "atendido_em": "DATETIME",
         "confirmado_por_id": "INTEGER",
         "confirmado_em": "DATETIME",
+        "laboratorio_secundario_id": "INTEGER",
+        "ilha_codigo": "VARCHAR(30)",
     }
     with engine.begin() as connection:
         for name, definition in additions.items():

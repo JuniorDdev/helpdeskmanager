@@ -68,10 +68,12 @@
                 <strong>{{ slot.laboratorio.nome }}</strong>
                 <span>{{ 'Confirmado' if slot.reservas|selectattr('status', 'equalto', 'agendado')|list else ('Em análise' if slot.reservas else 'Livre') }}</span>
               </div>
+              {% if slot.laboratorio.capacidade %}<small class="lab-capacity">Até {{ slot.laboratorio.capacidade }} alunos</small>{% endif %}
               {% if slot.reservas %}
                 {% for item in slot.reservas %}
                 <button class="slot-booking" type="button" data-bs-toggle="modal" data-bs-target="#agendamentoModal{{ item.id }}" aria-label="Abrir detalhes de {{ item.protocolo }}">
                   <h3>{{ item.titulo }}</h3>
+                  <small>{{ item.laboratorio_label }}</small>
                   {% if item.finalidade %}<p>{{ item.finalidade }}</p>{% endif %}
                   <small>{{ item.professor_nome or item.usuario.nome }} · {{ item.quantidade_alunos }} alunos{% if item.laboratorio.capacidade %} / {{ item.laboratorio.capacidade }} computadores{% endif %}</small>
                   <small>{{ item.protocolo }} · {{ status_labels[item.status] }}</small>

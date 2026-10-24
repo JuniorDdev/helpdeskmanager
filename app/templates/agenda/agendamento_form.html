@@ -13,6 +13,7 @@
 <div class="form-card agenda-form-card">
   <form method="post" class="row g-3">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if booking.ilha_codigo %}<input type="hidden" name="ilha_codigo" value="{{ booking.ilha_codigo }}">{% endif %}
     <div class="col-md-6">
       <label class="form-label" for="professorNome">Nome do professor</label>
       <input id="professorNome" name="professor_nome" class="form-control" maxlength="120" value="{{ booking.professor_nome or booking.usuario.nome }}" required>
@@ -43,6 +44,7 @@
     </div>
     <div class="col-md-4">
       <label class="form-label" for="reservaLaboratorio">Laboratório</label>
+      {% if booking.ilha_codigo %}<div class="form-control bg-light">{{ booking.laboratorio_label }}</div>{% endif %}
       <select id="reservaLaboratorio" name="laboratorio_id" class="form-select" required>
         {% for laboratorio in laboratorios %}
         <option value="{{ laboratorio.id }}" {% if laboratorio.id == booking.laboratorio_id %}selected{% endif %}>{{ laboratorio.nome }}{% if not laboratorio.ativo %} (inativo){% endif %}</option>

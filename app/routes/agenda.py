@@ -9,7 +9,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.pdfgen import canvas
-from sqlalchemy import case
+from sqlalchemy import case, or_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload
 
@@ -53,6 +53,10 @@ STATUS_LABELS = {
     "cancelado": "Cancelado",
     "excluido": "Excluído",
 }
+ILHAS_LABORATORIO = {
+    "ilha-a": {"nome": "Ilha A", "laboratorios": ("Lab 05", "Lab 06"), "capacidade": 56},
+    "ilha-b": {"nome": "Ilha B", "laboratorios": ("Lab 07", "Lab 08"), "capacidade": 56},
+}
 
 
 def utc_now():
@@ -87,6 +91,7 @@ def report_bookings(inicio, fim):
     return (
         AgendamentoLaboratorio.query.options(
             joinedload(AgendamentoLaboratorio.laboratorio),
+            joinedload(AgendamentoLaboratorio.laboratorio_secundario),
             joinedload(AgendamentoLaboratorio.usuario),
             joinedload(AgendamentoLaboratorio.atendido_por),
             joinedload(AgendamentoLaboratorio.confirmado_por),
@@ -120,6 +125,23 @@ def selected_date():
 
 def can_manage_booking(booking):
     return has_role(*SUPPORT_ROLES) or booking.usuario_id == current_user.id
+
+
+def booking_uses_laboratorio(booking, laboratorio_id):
+    return laboratorio_id in {booking.laboratorio_id, booking.laboratorio_secundario_id}
+
+
+def get_ilha(codigo, exigir_disponivel=True):
+    configuracao = ILHAS_LABORATORIO.get(codigo)
+    if not configuracao:
+        raise ValidationError("Ilha de laboratórios inválida.")
+    laboratorios = [
+        Laboratorio.query.filter_by(nome=nome, ativo=True).first()
+        for nome in configuracao["laboratorios"]
+    ]
+    if exigir_disponivel and not all(laboratorios):
+        raise ValidationError("Esta ilha não está disponível para agendamento.")
+    return configuracao, laboratorios
 
 
 def register_history(booking, action, description=None, actor=None):
@@ -169,7 +191,7 @@ def notify_support(booking):
                 agendamento=booking,
                 mensagem=(
                     f"Nova solicitação {booking.protocolo}: {booking.professor_nome} "
-                    f"solicitou {booking.laboratorio.nome}.{complemento_software}"
+                    f"solicitou {booking.laboratorio_label}.{complemento_software}"
                 ),
                 tipo="software" if possui_software else "solicitacao",
             )
@@ -177,7 +199,7 @@ def notify_support(booking):
     notify_general_support(
         "agendamento",
         "Nova solicitação de agendamento",
-        f"{booking.professor_nome} solicitou {booking.laboratorio.nome} ({booking.protocolo}).{complemento_software}",
+        f"{booking.professor_nome} solicitou {booking.laboratorio_label} ({booking.protocolo}).{complemento_software}",
         url_for("agenda.index", data=booking.inicio.date().isoformat()),
     )
 
@@ -197,7 +219,10 @@ def resolve_booking_notifications(booking):
 
 def booking_conflict(laboratorio_id, inicio, fim, ignore_id=None):
     query = AgendamentoLaboratorio.query.filter(
-        AgendamentoLaboratorio.laboratorio_id == laboratorio_id,
+        or_(
+            AgendamentoLaboratorio.laboratorio_id == laboratorio_id,
+            AgendamentoLaboratorio.laboratorio_secundario_id == laboratorio_id,
+        ),
         AgendamentoLaboratorio.status == "agendado",
         AgendamentoLaboratorio.inicio < fim,
         AgendamentoLaboratorio.fim > inicio,
@@ -208,11 +233,6 @@ def booking_conflict(laboratorio_id, inicio, fim, ignore_id=None):
 
 
 def apply_booking_fields(booking):
-    laboratorio_id = optional_id(request.form, "laboratorio_id")
-    laboratorio = Laboratorio.query.filter_by(id=laboratorio_id, ativo=True).first()
-    if not laboratorio:
-        raise ValidationError("Laboratório inválido ou indisponível.")
-
     data_reserva = parse_date_value(request.form.get("data_reserva"), "Data da reserva")
     if data_reserva.weekday() == 6:
         raise ValidationError("Não é possível agendar laboratórios aos domingos.")
@@ -228,17 +248,50 @@ def apply_booking_fields(booking):
     quantidade_alunos = 0 if reserva_interna and not quantidade_informada else integer(
         request.form, "quantidade_alunos", "Quantidade de alunos", 1
     )
-    if laboratorio.capacidade and quantidade_alunos > laboratorio.capacidade:
+    ilha_codigo = (request.form.get("ilha_codigo") or "").strip()
+    if quantidade_alunos > 56:
+        raise ValidationError("A capacidade máxima por ilha é de 56 alunos.")
+
+    if ilha_codigo:
+        if quantidade_alunos < 33:
+            raise ValidationError("A reserva de uma ilha é destinada a turmas de 33 a 56 alunos.")
+        configuracao_ilha, laboratorios_reservados = get_ilha(ilha_codigo)
+    else:
+        if quantidade_alunos > 32:
+            raise ValidationError(
+                "Para turmas de 33 a 56 alunos, escolha uma ilha de laboratórios disponível."
+            )
+        laboratorio_id = optional_id(request.form, "laboratorio_id")
+        laboratorio = Laboratorio.query.filter_by(id=laboratorio_id, ativo=True).first()
+        if not laboratorio:
+            raise ValidationError("Laboratório inválido ou indisponível.")
+        configuracao_ilha = None
+        laboratorios_reservados = [laboratorio]
+
+    capacidade_total = sum(laboratorio.capacidade or 0 for laboratorio in laboratorios_reservados)
+    if capacidade_total and quantidade_alunos > capacidade_total:
         raise ValidationError(
-            f"A quantidade de alunos excede a capacidade de {laboratorio.capacidade} computadores do laboratório."
+            f"A quantidade de alunos excede a capacidade de {capacidade_total} computadores desta opção."
         )
 
-    if booking.status == "agendado":
-        conflict = booking_conflict(laboratorio.id, inicio, fim, booking.id)
-        if conflict:
-            raise ValidationError("Esse laboratório já está reservado no turno selecionado.")
+    if configuracao_ilha:
+        for laboratorio in laboratorios_reservados:
+            if booking.status == "agendado" and booking_conflict(laboratorio.id, inicio, fim, booking.id):
+                raise ValidationError(
+                    f"{laboratorio.nome} já está reservado no turno selecionado. Escolha outra opção."
+                )
+    else:
+        for laboratorio in laboratorios_reservados:
+            if booking.status == "agendado" and booking_conflict(laboratorio.id, inicio, fim, booking.id):
+                raise ValidationError(
+                    f"{laboratorio.nome} já está reservado no turno selecionado. Escolha outra opção."
+                )
 
-    booking.laboratorio_id = laboratorio.id
+    booking.laboratorio_id = laboratorios_reservados[0].id
+    booking.laboratorio_secundario_id = (
+        laboratorios_reservados[1].id if len(laboratorios_reservados) > 1 else None
+    )
+    booking.ilha_codigo = ilha_codigo or None
     if reserva_interna:
         booking.professor_nome = required_text(request.form, "responsavel_nome", "Nome do responsável", 120)
         booking.professor_matricula = optional_text(request.form, "professor_matricula", 60) or ""
@@ -265,6 +318,7 @@ def index():
     agendamentos = (
         AgendamentoLaboratorio.query.options(
             joinedload(AgendamentoLaboratorio.laboratorio),
+            joinedload(AgendamentoLaboratorio.laboratorio_secundario),
             joinedload(AgendamentoLaboratorio.usuario),
         )
         .filter(
@@ -298,17 +352,34 @@ def index():
             reservas_slot = [
                 item
                 for item in agendamentos
-                if item.laboratorio_id == laboratorio.id
+                if booking_uses_laboratorio(item, laboratorio.id)
                 and item.inicio < fim_turno
                 and item.fim > inicio_turno
             ]
             slots.append({"laboratorio": laboratorio, "reservas": reservas_slot})
+        ilhas = []
+        for codigo_ilha, configuracao_ilha in ILHAS_LABORATORIO.items():
+            _, laboratorios_ilha = get_ilha(codigo_ilha, exigir_disponivel=False)
+            if not all(laboratorios_ilha):
+                continue
+            disponivel = all(
+                not any(
+                    booking_uses_laboratorio(item, laboratorio.id)
+                    and item.inicio < fim_turno
+                    and item.fim > inicio_turno
+                    and item.status == "agendado"
+                    for item in agendamentos
+                )
+                for laboratorio in laboratorios_ilha
+            )
+            ilhas.append({"codigo": codigo_ilha, "configuracao": configuracao_ilha, "laboratorios": laboratorios_ilha, "disponivel": disponivel})
         mapa_turnos.append(
             {
                 "codigo": codigo,
                 "label": turno["label"],
                 "periodo": f"{turno['inicio'].strftime('%H:%M')}–{turno['fim'].strftime('%H:%M')}",
                 "slots": slots,
+                "ilhas": ilhas,
             }
         )
 
@@ -467,7 +538,7 @@ def relatorio_excel():
                 booking.protocolo,
                 booking.inicio.date(),
                 booking.turno_label,
-                excel_safe(booking.laboratorio.nome),
+                excel_safe(booking.laboratorio_label),
                 excel_safe(booking.professor_nome or booking.usuario.nome),
                 excel_safe(booking.professor_matricula),
                 booking.quantidade_alunos,
@@ -537,7 +608,7 @@ def relatorio_pdf():
             pdf.setFont("Helvetica", 8)
         data_turno = f"{booking.inicio.strftime('%d/%m/%Y')}\n{booking.turno_label}"
         pdf.drawString(28, y, data_turno.replace("\n", " "))
-        pdf.drawString(105, y, booking.laboratorio.nome[:13])
+        pdf.drawString(105, y, booking.laboratorio_label[:22])
         pdf.drawString(180, y, (booking.professor_nome or booking.usuario.nome)[:29])
         pdf.drawString(350, y, booking.titulo[:42])
         pdf.drawRightString(630, y, str(booking.quantidade_alunos))
@@ -577,6 +648,7 @@ def solicitar_professor():
         .all()
     )
     mapa_turnos = []
+    disponibilidade_formulario = {}
     for codigo, turno in TURNOS.items():
         inicio_turno = datetime.combine(data_selecionada, turno["inicio"])
         fim_turno = datetime.combine(data_selecionada, turno["fim"])
@@ -586,7 +658,7 @@ def solicitar_professor():
                 (
                     item
                     for item in minhas_reservas_ativas
-                    if item.laboratorio_id == laboratorio.id
+                    if booking_uses_laboratorio(item, laboratorio.id)
                     and item.inicio < fim_turno
                     and item.fim > inicio_turno
                     and item.usuario_id == current_user.id
@@ -594,13 +666,36 @@ def solicitar_professor():
                 None,
             )
             ocupado = any(
-                item.laboratorio_id == laboratorio.id
+                booking_uses_laboratorio(item, laboratorio.id)
                 and item.inicio < fim_turno
                 and item.fim > inicio_turno
                 for item in confirmados
             )
             slots.append({"laboratorio": laboratorio, "ocupado": ocupado, "reserva_propria": reserva_propria})
-        mapa_turnos.append({"codigo": codigo, "label": turno["label"], "periodo": f"{turno['inicio'].strftime('%H:%M')}–{turno['fim'].strftime('%H:%M')}", "slots": slots})
+        ilhas = []
+        for codigo_ilha, configuracao_ilha in ILHAS_LABORATORIO.items():
+            _, laboratorios_ilha = get_ilha(codigo_ilha, exigir_disponivel=False)
+            if not all(laboratorios_ilha):
+                continue
+            disponivel = all(
+                not any(
+                    booking_uses_laboratorio(item, laboratorio.id)
+                    and item.inicio < fim_turno
+                    and item.fim > inicio_turno
+                    for item in confirmados
+                )
+                for laboratorio in laboratorios_ilha
+            )
+            ilhas.append({"codigo": codigo_ilha, "configuracao": configuracao_ilha, "laboratorios": laboratorios_ilha, "disponivel": disponivel})
+        disponibilidade_formulario[codigo] = {
+            "laboratorios_disponiveis": [
+                slot["laboratorio"].id for slot in slots if not slot["ocupado"]
+            ],
+            "ilhas_disponiveis": {
+                ilha["codigo"]: ilha["disponivel"] for ilha in ilhas
+            },
+        }
+        mapa_turnos.append({"codigo": codigo, "label": turno["label"], "periodo": f"{turno['inicio'].strftime('%H:%M')}–{turno['fim'].strftime('%H:%M')}", "slots": slots, "ilhas": ilhas})
 
     preselected_lab_id = request.args.get("lab", type=int)
     if not any(laboratorio.id == preselected_lab_id for laboratorio in laboratorios):
@@ -620,6 +715,7 @@ def solicitar_professor():
         data_anterior=data_selecionada - timedelta(days=1),
         proxima_data=data_selecionada + timedelta(days=1),
         mapa_turnos=mapa_turnos,
+        disponibilidade_formulario=disponibilidade_formulario,
         preselected_lab_id=preselected_lab_id,
         preselected_turno=preselected_turno,
         domingo=data_selecionada.weekday() == 6,
@@ -632,14 +728,14 @@ def solicitar_professor():
 def minhas_solicitacoes():
     if current_user.perfil != "professor":
         abort(403)
-    agendamentos = AgendamentoLaboratorio.query.options(joinedload(AgendamentoLaboratorio.laboratorio), joinedload(AgendamentoLaboratorio.atendido_por)).filter_by(usuario_id=current_user.id).order_by(AgendamentoLaboratorio.inicio.desc()).all()
+    agendamentos = AgendamentoLaboratorio.query.options(joinedload(AgendamentoLaboratorio.laboratorio), joinedload(AgendamentoLaboratorio.laboratorio_secundario), joinedload(AgendamentoLaboratorio.atendido_por)).filter_by(usuario_id=current_user.id).order_by(AgendamentoLaboratorio.inicio.desc()).all()
     return render_template("agenda/minhas_solicitacoes.html", agendamentos=agendamentos, status_labels=STATUS_LABELS)
 
 
 @agenda_bp.route("/<int:id>/detalhes")
 @login_required
 def detalhes_agendamento(id):
-    booking = AgendamentoLaboratorio.query.options(joinedload(AgendamentoLaboratorio.laboratorio), joinedload(AgendamentoLaboratorio.atendido_por), joinedload(AgendamentoLaboratorio.historicos).joinedload(HistoricoAgendamentoLaboratorio.usuario)).get_or_404(id)
+    booking = AgendamentoLaboratorio.query.options(joinedload(AgendamentoLaboratorio.laboratorio), joinedload(AgendamentoLaboratorio.laboratorio_secundario), joinedload(AgendamentoLaboratorio.atendido_por), joinedload(AgendamentoLaboratorio.historicos).joinedload(HistoricoAgendamentoLaboratorio.usuario)).get_or_404(id)
     if current_user.perfil == "professor" and booking.usuario_id != current_user.id:
         abort(403)
     if current_user.perfil not in SUPPORT_ROLES and booking.usuario_id != current_user.id:
@@ -779,11 +875,15 @@ def confirmar_agendamento(id):
     try:
         if booking.status != "solicitado":
             raise ValidationError("Somente solicitações pendentes podem ser confirmadas.")
-        if booking.laboratorio.capacidade and booking.quantidade_alunos > booking.laboratorio.capacidade:
+        if booking.capacidade_reserva and booking.quantidade_alunos > booking.capacidade_reserva:
             raise ValidationError("A quantidade de alunos excede a capacidade do laboratório.")
+        laboratorios_ids = [laboratorio.id for laboratorio in booking.laboratorios_reservados]
         anterior = (
             AgendamentoLaboratorio.query.filter(
-                AgendamentoLaboratorio.laboratorio_id == booking.laboratorio_id,
+                or_(
+                    AgendamentoLaboratorio.laboratorio_id.in_(laboratorios_ids),
+                    AgendamentoLaboratorio.laboratorio_secundario_id.in_(laboratorios_ids),
+                ),
                 AgendamentoLaboratorio.status == "solicitado",
                 AgendamentoLaboratorio.inicio == booking.inicio,
                 AgendamentoLaboratorio.fim == booking.fim,
@@ -796,8 +896,9 @@ def confirmar_agendamento(id):
             raise ValidationError(
                 f"A solicitação {anterior.protocolo} chegou antes e deve ser analisada primeiro."
             )
-        if booking_conflict(booking.laboratorio_id, booking.inicio, booking.fim, booking.id):
-            raise ValidationError("Este horário já foi confirmado para outra solicitação.")
+        for laboratorio in booking.laboratorios_reservados:
+            if booking_conflict(laboratorio.id, booking.inicio, booking.fim, booking.id):
+                raise ValidationError("Este horário já foi confirmado para outra solicitação.")
         claim_booking(booking)
         booking.status = "agendado"
         booking.confirmado_por_id = current_user.id
@@ -811,7 +912,7 @@ def confirmar_agendamento(id):
         flash(str(error) if isinstance(error, ValidationError) else "Não foi possível confirmar a solicitação.", "danger")
     else:
         flash(
-            f"{booking.protocolo} confirmado: {booking.laboratorio.nome}, {booking.inicio.strftime('%d/%m/%Y')} "
+            f"{booking.protocolo} confirmado: {booking.laboratorio_label}, {booking.inicio.strftime('%d/%m/%Y')} "
             f"no turno da {booking.turno_label.lower()}, para {booking.quantidade_alunos} alunos. "
             "Oriente o professor a chegar com antecedência e comunicar qualquer cancelamento.",
             "success",

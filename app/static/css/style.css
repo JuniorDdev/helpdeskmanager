@@ -366,6 +366,7 @@ main > h2,
 .lab-slot.is-pending { background: #fffdf4; }
 .lab-slot-head { align-items: center; display: flex; gap: 7px; justify-content: space-between; }
 .lab-slot-head strong { font-size: .69rem; }
+.lab-capacity { color: var(--muted); display: block; font-size: .62rem; margin-top: 5px; }
 .lab-slot-head span { border-radius: 999px; font-size: .54rem; font-weight: 850; padding: 4px 6px; text-transform: uppercase; }
 .lab-slot.is-free .lab-slot-head span { background: #e4f7f1; color: var(--success); }
 .lab-slot.is-occupied .lab-slot-head span { background: #fdebed; color: var(--danger); }
@@ -384,6 +385,18 @@ main > h2,
   text-decoration: none;
 }
 .slot-reserve-link:hover { background: #edf9f5; color: #147a5f; }
+button.slot-reserve-link { background: transparent; width: 100%; }
+.capacity-incompatible { display: none; }
+.is-recommended { box-shadow: inset 0 0 0 2px rgba(68, 104, 242, .65); }
+.ilha-options { display: none; background: #f5f8ff; border-top: 1px solid #e1e8fc; padding: 14px; }
+.ilha-options.is-active { display: block; }
+.ilha-options > small { color: var(--muted); display: block; font-size: .7rem; margin: 3px 0 10px; }
+.ilha-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ilha-choice { background: #fff; border: 1px solid #afc1ff; border-radius: 10px; color: var(--ink); display: grid; padding: 12px; text-align: left; }
+.ilha-choice:hover:not(:disabled) { border-color: var(--primary); box-shadow: 0 5px 14px rgba(68, 104, 242, .13); }
+.ilha-choice span { font-size: .78rem; margin-top: 3px; }
+.ilha-choice small { color: var(--success); font-size: .68rem; margin-top: 5px; }
+.ilha-choice.is-unavailable { border-color: #e5e9f0; opacity: .58; }
 .slot-booking { background: transparent; border: 0; cursor: pointer; padding: 0; text-align: left; width: 100%; }
 .slot-booking:hover, .slot-booking:focus-visible { background: #fff; border-radius: 8px; box-shadow: 0 8px 18px rgba(21, 43, 83, .12); outline: 2px solid #6382ff; outline-offset: 3px; padding: 7px; transform: scale(1.025); transition: .18s ease; }
 .slot-booking + .modal + .slot-booking { border-top: 1px solid #f0dfe2; margin-top: 9px; padding-top: 9px; }
@@ -562,6 +575,7 @@ main > h2,
   .agenda-date-form { order: 2; width: 100%; }
   .agenda-date-form .form-control { flex: 1; min-width: 0; }
   .lab-slot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ilha-grid { grid-template-columns: 1fr; }
   .lab-slot { min-height: 145px; }
   .lab-slot:nth-child(2n) { border-right: 0; }
   .lab-slot:nth-last-child(-n + 4) { border-bottom: 1px solid #edf0f5; }
