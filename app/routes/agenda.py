@@ -964,6 +964,73 @@ def cancelar_agendamento(id):
     return redirect(url_for("agenda.index", data=request.form.get("data_retorno") or date.today()))
 
 
+@agenda_bp.route("/<int:id>/reduzir-ilha", methods=["POST"])
+@roles_required("admin", "tecnico")
+def reduzir_ilha_agendamento(id):
+    """Libera um dos laboratórios de uma ilha confirmada após ajuste de turma."""
+    booking = AgendamentoLaboratorio.query.with_for_update().get_or_404(id)
+    try:
+        if booking.status != "agendado" or not booking.laboratorio_secundario_id:
+            raise ValidationError("Somente uma ilha confirmada pode ser reduzida.")
+        quantidade_real = integer(
+            request.form, "quantidade_real", "Quantidade real de alunos", 1
+        )
+        laboratorios_compativeis = sorted(
+            (
+                laboratorio
+                for laboratorio in booking.laboratorios_reservados
+                if not laboratorio.capacidade or quantidade_real <= laboratorio.capacidade
+            ),
+            key=lambda laboratorio: (laboratorio.capacidade or 999999, laboratorio.id),
+        )
+        if not laboratorios_compativeis:
+            raise ValidationError(
+                "A quantidade real ainda exige a ilha completa (máximo de 32 alunos por laboratório)."
+            )
+
+        laboratorio_mantido = laboratorios_compativeis[0]
+        laboratorio_liberado = next(
+            laboratorio
+            for laboratorio in booking.laboratorios_reservados
+            if laboratorio.id != laboratorio_mantido.id
+        )
+        conflito = booking_conflict(
+            laboratorio_mantido.id, booking.inicio, booking.fim, booking.id
+        )
+        if conflito:
+            raise ValidationError("O laboratório que permanecerá já possui outra reserva confirmada.")
+
+        ilha_anterior = booking.laboratorio_label
+        quantidade_anterior = booking.quantidade_alunos
+        observacao = optional_text(request.form, "observacao_reducao")
+        booking.laboratorio_id = laboratorio_mantido.id
+        booking.laboratorio_secundario_id = None
+        booking.ilha_codigo = None
+        booking.quantidade_alunos = quantidade_real
+        descricao = (
+            f"{ilha_anterior} reduzida para {laboratorio_mantido.nome}; "
+            f"{laboratorio_liberado.nome} liberado. Turma ajustada de "
+            f"{quantidade_anterior} para {quantidade_real} aluno(s)."
+        )
+        if observacao:
+            descricao = f"{descricao} Observação: {observacao}"
+        register_history(booking, "ilha_reduzida", descricao)
+        db.session.commit()
+    except (ValidationError, SQLAlchemyError) as error:
+        db.session.rollback()
+        flash(
+            str(error) if isinstance(error, ValidationError) else "Não foi possível reduzir a ilha.",
+            "danger",
+        )
+    else:
+        flash(
+            f"Ilha ajustada: {laboratorio_mantido.nome} permanece reservado e "
+            f"{laboratorio_liberado.nome} está disponível para novo agendamento.",
+            "success",
+        )
+    return redirect(url_for("agenda.index", data=request.form.get("data_retorno") or booking.inicio.date()))
+
+
 @agenda_bp.route("/<int:id>/excluir", methods=["POST"])
 @roles_required("admin", "tecnico")
 def excluir_agendamento(id):

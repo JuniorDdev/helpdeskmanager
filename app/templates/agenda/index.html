@@ -101,6 +101,25 @@
     </section>
 
     {% if suporte %}
+    {% set ilhas_confirmadas = agendamentos|selectattr('status', 'equalto', 'agendado')|selectattr('laboratorio_secundario_id')|list %}
+    {% if ilhas_confirmadas %}
+    <section class="agenda-panel mt-4">
+      <div class="agenda-panel-header"><div><span class="page-eyebrow">Ajuste operacional</span><h2>Reduzir ilha confirmada</h2></div></div>
+      <p class="text-muted small">Use quando a turma real couber em apenas um laboratório. O sistema manterá o menor laboratório compatível e liberará o outro.</p>
+      {% for item in ilhas_confirmadas %}
+      <form method="post" action="{{ url_for('agenda.reduzir_ilha_agendamento', id=item.id) }}" class="row g-2 align-items-end border-top pt-3 mt-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="data_retorno" value="{{ data_selecionada.isoformat() }}">
+        <div class="col-md-4"><strong>{{ item.protocolo }} · {{ item.laboratorio_label }}</strong><br><small class="text-muted">{{ item.quantidade_alunos }} alunos previstos · {{ item.turno_label }}</small></div>
+        <div class="col-md-3"><label class="form-label" for="quantidadeReal{{ item.id }}">Quantidade real</label><input id="quantidadeReal{{ item.id }}" name="quantidade_real" type="number" min="1" max="32" class="form-control" required></div>
+        <div class="col-md-3"><label class="form-label" for="observacaoReducao{{ item.id }}">Observação</label><input id="observacaoReducao{{ item.id }}" name="observacao_reducao" class="form-control" placeholder="Opcional"></div>
+        <div class="col-md-2"><button class="btn btn-outline-primary w-100" type="submit" data-confirm="Reduzir esta ilha e liberar um laboratório?">Liberar um lab</button></div>
+      </form>
+      {% endfor %}
+    </section>
+    {% endif %}
+    {% endif %}
+
+    {% if suporte %}
     <section class="agenda-panel mt-4" id="nova-reserva">
       <div class="agenda-panel-header">
         <div><span class="page-eyebrow">Reserva interna</span><h2>Registrar agendamento da equipe</h2></div>

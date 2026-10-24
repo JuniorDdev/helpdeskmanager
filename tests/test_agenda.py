@@ -639,6 +639,53 @@ class AgendaRoutesTestCase(unittest.TestCase):
             self.assertEqual(ilha.status, "agendado")
             self.assertIsNotNone(ilha.laboratorio_secundario_id)
 
+    def test_tecnico_reduz_ilha_confirmada_e_libera_um_laboratorio(self):
+        with self.app.app_context():
+            labs = {}
+            for numero, capacidade in ((5, 32), (6, 24)):
+                laboratorio = Laboratorio.query.filter_by(nome=f"Lab {numero:02d}").first()
+                if not laboratorio:
+                    laboratorio = Laboratorio(nome=f"Lab {numero:02d}", capacidade=capacidade, ativo=True)
+                    db.session.add(laboratorio)
+                else:
+                    laboratorio.capacidade = capacidade
+                labs[numero] = laboratorio
+            db.session.commit()
+            ilha = AgendamentoLaboratorio(
+                laboratorio_id=labs[5].id,
+                laboratorio_secundario_id=labs[6].id,
+                ilha_codigo="ilha-a",
+                usuario_id=self.professor_id,
+                professor_nome="Professora Teste",
+                professor_matricula="0-000000",
+                quantidade_alunos=56,
+                titulo="Turma integrada",
+                inicio=datetime(2030, 3, 15, 8, 0),
+                fim=datetime(2030, 3, 15, 12, 0),
+                status="agendado",
+            )
+            db.session.add(ilha)
+            db.session.commit()
+            ilha_id = ilha.id
+            lab_05_id = labs[5].id
+
+        self.login(self.admin_id)
+        resposta = self.client.post(
+            f"/agendamentos/{ilha_id}/reduzir-ilha",
+            data={"quantidade_real": "30", "observacao_reducao": "Ausência de alunos"},
+        )
+        self.assertEqual(resposta.status_code, 302)
+        with self.app.app_context():
+            ilha = db.session.get(AgendamentoLaboratorio, ilha_id)
+            self.assertEqual(ilha.laboratorio_id, lab_05_id)
+            self.assertIsNone(ilha.laboratorio_secundario_id)
+            self.assertIsNone(ilha.ilha_codigo)
+            self.assertEqual(ilha.quantidade_alunos, 30)
+            historico = HistoricoAgendamentoLaboratorio.query.filter_by(
+                agendamento_id=ilha_id, acao="ilha_reduzida"
+            ).one()
+            self.assertIn("Lab 06 liberado", historico.descricao)
+
     def test_professor_entra_com_matricula_e_senha(self):
         with self.app.app_context():
             professor = db.session.get(Usuario, self.professor_id)
