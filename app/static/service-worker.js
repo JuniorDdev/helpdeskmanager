@@ -1,4 +1,4 @@
-const CACHE_NAME = 'helpdesk-manager-shell-v4';
+const CACHE_NAME = 'helpdesk-manager-shell-v5';
 const APP_SHELL = [
   '/offline.html',
   '/manifest.webmanifest',

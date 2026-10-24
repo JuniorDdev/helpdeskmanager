@@ -79,4 +79,32 @@ document.addEventListener('DOMContentLoaded', () => {
       window.setTimeout(() => alert.remove(), 250);
     }, 5200);
   });
+
+  const notificationBells = [...document.querySelectorAll('[data-notification-bell]')];
+  const refreshNotificationBadge = async () => {
+    if (!notificationBells.length || document.hidden) return;
+    try {
+      const response = await fetch('/api/notificacoes/resumo', {
+        headers: { Accept: 'application/json' },
+        credentials: 'same-origin',
+      });
+      if (!response.ok) return;
+      const { nao_lidas } = await response.json();
+      notificationBells.forEach((bell) => {
+        bell.hidden = !nao_lidas;
+        bell.setAttribute('aria-label', `${nao_lidas} notificações`);
+        const count = bell.querySelector('[data-notification-count]');
+        if (count) count.textContent = nao_lidas;
+      });
+    } catch (_) {
+      // Falhas temporárias de rede não devem afetar o uso da página.
+    }
+  };
+  if (notificationBells.length) {
+    refreshNotificationBadge();
+    window.setInterval(refreshNotificationBadge, 30000);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) refreshNotificationBadge();
+    });
+  }
 });

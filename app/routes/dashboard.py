@@ -91,13 +91,35 @@ def index():
 def notificacoes():
     if current_user.perfil not in SUPPORT_ROLES:
         abort(403)
-    notificacoes_usuario = (
-        NotificacaoSistema.query.filter_by(usuario_id=current_user.id)
-        .order_by(NotificacaoSistema.criado_em.desc())
-        .limit(100)
-        .all()
+    filtro = (request.args.get("filtro") or "todas").strip()
+    if filtro not in {"todas", "nao_lidas", "lidas"}:
+        filtro = "todas"
+    consulta = NotificacaoSistema.query.filter_by(usuario_id=current_user.id)
+    if filtro == "nao_lidas":
+        consulta = consulta.filter(NotificacaoSistema.lida_em.is_(None))
+    elif filtro == "lidas":
+        consulta = consulta.filter(NotificacaoSistema.lida_em.is_not(None))
+    pagina = max(request.args.get("page", 1, type=int), 1)
+    notificacoes_usuario = consulta.order_by(NotificacaoSistema.criado_em.desc()).paginate(
+        page=pagina, per_page=20, error_out=False
     )
-    return render_template("dashboard/notificacoes.html", notificacoes=notificacoes_usuario)
+    return render_template(
+        "dashboard/notificacoes.html",
+        notificacoes=notificacoes_usuario.items,
+        pagination=notificacoes_usuario,
+        filtro=filtro,
+    )
+
+
+@dashboard_bp.route("/api/notificacoes/resumo")
+@login_required
+def resumo_notificacoes():
+    if current_user.perfil not in SUPPORT_ROLES:
+        abort(403)
+    nao_lidas = NotificacaoSistema.query.filter_by(
+        usuario_id=current_user.id, lida_em=None
+    ).count()
+    return jsonify(nao_lidas=nao_lidas)
 
 
 @dashboard_bp.route("/notificacoes/<int:id>/ler", methods=["POST"])

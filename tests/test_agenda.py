@@ -306,6 +306,30 @@ class AgendaRoutesTestCase(unittest.TestCase):
         self.assertNotIn("Matrículas e acessos".encode(), menu.data)
         self.assertNotIn("Importar agenda".encode(), menu.data)
 
+    def test_central_de_notificacoes_filtra_e_pagina(self):
+        with self.app.app_context():
+            for indice in range(22):
+                db.session.add(
+                    NotificacaoSistema(
+                        usuario_id=self.admin_id,
+                        tipo="agendamento",
+                        titulo=f"Notificação {indice}",
+                        mensagem="Nova solicitação",
+                        destino="/agendamentos/",
+                    )
+                )
+            db.session.commit()
+
+        self.login(self.admin_id)
+        primeira_pagina = self.client.get("/notificacoes?filtro=nao_lidas")
+        segunda_pagina = self.client.get("/notificacoes?filtro=nao_lidas&page=2")
+        resumo = self.client.get("/api/notificacoes/resumo")
+
+        self.assertEqual(primeira_pagina.status_code, 200)
+        self.assertIn("Página 1 de 2".encode(), primeira_pagina.data)
+        self.assertIn("Página 2 de 2".encode(), segunda_pagina.data)
+        self.assertEqual(resumo.get_json()["nao_lidas"], 22)
+
     def test_admin_localiza_professor_e_redefine_senha(self):
         self.login(self.admin_id)
 
