@@ -2,7 +2,7 @@ from datetime import date, datetime, time, timedelta, timezone
 
 from flask import Blueprint, abort, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
-from sqlalchemy import case, func
+from sqlalchemy import case, func, or_
 
 from app.extensions import db
 from app.models import AgendamentoLaboratorio, Chamado, Estoque, Manutencao, Maquina, NotificacaoSistema, Recado
@@ -94,11 +94,20 @@ def notificacoes():
     filtro = (request.args.get("filtro") or "todas").strip()
     if filtro not in {"todas", "nao_lidas", "lidas"}:
         filtro = "todas"
+    busca = (request.args.get("busca") or "").strip()
     consulta = NotificacaoSistema.query.filter_by(usuario_id=current_user.id)
     if filtro == "nao_lidas":
         consulta = consulta.filter(NotificacaoSistema.lida_em.is_(None))
     elif filtro == "lidas":
         consulta = consulta.filter(NotificacaoSistema.lida_em.is_not(None))
+    if busca:
+        termo = f"%{busca}%"
+        consulta = consulta.filter(
+            or_(
+                NotificacaoSistema.titulo.ilike(termo),
+                NotificacaoSistema.mensagem.ilike(termo),
+            )
+        )
     pagina = max(request.args.get("page", 1, type=int), 1)
     notificacoes_usuario = consulta.order_by(NotificacaoSistema.criado_em.desc()).paginate(
         page=pagina, per_page=20, error_out=False
@@ -108,6 +117,7 @@ def notificacoes():
         notificacoes=notificacoes_usuario.items,
         pagination=notificacoes_usuario,
         filtro=filtro,
+        busca=busca,
     )
 
 

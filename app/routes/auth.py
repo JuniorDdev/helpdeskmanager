@@ -357,8 +357,29 @@ def editar_usuario(id):
 @auth_bp.route("/auditoria")
 @master_admin_required
 def auditoria():
-    registros = AuditoriaAdmin.query.order_by(AuditoriaAdmin.criado_em.desc(), AuditoriaAdmin.id.desc()).limit(300).all()
-    return render_template("auth/auditoria.html", registros=registros)
+    busca = (request.args.get("busca") or "").strip()
+    consulta = AuditoriaAdmin.query.outerjoin(Usuario, AuditoriaAdmin.usuario_id == Usuario.id)
+    if busca:
+        termo = f"%{busca}%"
+        consulta = consulta.filter(
+            or_(
+                Usuario.nome.ilike(termo),
+                AuditoriaAdmin.matricula.ilike(termo),
+                AuditoriaAdmin.modulo.ilike(termo),
+                AuditoriaAdmin.acao.ilike(termo),
+                AuditoriaAdmin.alteracoes.ilike(termo),
+            )
+        )
+    pagina = max(request.args.get("page", 1, type=int), 1)
+    registros_paginados = consulta.order_by(
+        AuditoriaAdmin.criado_em.desc(), AuditoriaAdmin.id.desc()
+    ).paginate(page=pagina, per_page=20, error_out=False)
+    return render_template(
+        "auth/auditoria.html",
+        registros=registros_paginados.items,
+        pagination=registros_paginados,
+        busca=busca,
+    )
 
 
 @auth_bp.route("/minha-matricula", methods=["GET", "POST"])

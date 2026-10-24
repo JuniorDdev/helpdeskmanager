@@ -8,6 +8,7 @@ from app import create_app
 from app.extensions import db
 from app.models import (
     AgendamentoLaboratorio,
+    AuditoriaAdmin,
     HistoricoAgendamentoLaboratorio,
     Laboratorio,
     MensagemAgendamento,
@@ -329,6 +330,59 @@ class AgendaRoutesTestCase(unittest.TestCase):
         self.assertIn("Página 1 de 2".encode(), primeira_pagina.data)
         self.assertIn("Página 2 de 2".encode(), segunda_pagina.data)
         self.assertEqual(resumo.get_json()["nao_lidas"], 22)
+
+    def test_central_de_notificacoes_pesquisa_por_nome_ou_matricula(self):
+        with self.app.app_context():
+            db.session.add_all(
+                [
+                    NotificacaoSistema(
+                        usuario_id=self.admin_id,
+                        tipo="agendamento",
+                        titulo="Nova solicitação de agendamento",
+                        mensagem="Ana Souza · 1-000123 solicitou Lab 06.",
+                        destino="/agendamentos/",
+                    ),
+                    NotificacaoSistema(
+                        usuario_id=self.admin_id,
+                        tipo="agendamento",
+                        titulo="Nova solicitação de agendamento",
+                        mensagem="Bruno Lima · 1-000456 solicitou Lab 07.",
+                        destino="/agendamentos/",
+                    ),
+                ]
+            )
+            db.session.commit()
+
+        self.login(self.admin_id)
+        por_nome = self.client.get("/notificacoes?busca=Ana+Souza")
+        por_matricula = self.client.get("/notificacoes?busca=1-000456")
+
+        self.assertIn("Ana Souza".encode(), por_nome.data)
+        self.assertNotIn("Bruno Lima".encode(), por_nome.data)
+        self.assertIn("Bruno Lima".encode(), por_matricula.data)
+
+    def test_auditoria_pesquisa_por_nome_matricula_e_pagina(self):
+        with self.app.app_context():
+            for indice in range(22):
+                db.session.add(
+                    AuditoriaAdmin(
+                        usuario_id=self.admin_id,
+                        matricula="ADM-000001",
+                        modulo="agendamento_laboratorio",
+                        acao="atualizacao",
+                        registro_id=indice + 1,
+                        alteracoes=f'{{"responsavel": "Admin Teste", "indice": {indice}}}',
+                    )
+                )
+            db.session.commit()
+
+        self.login(self.admin_id)
+        primeira_pagina = self.client.get("/auditoria?busca=ADM-000001")
+        segunda_pagina = self.client.get("/auditoria?busca=Admin+Teste&page=2")
+
+        self.assertEqual(primeira_pagina.status_code, 200)
+        self.assertIn("Página 1 de 2".encode(), primeira_pagina.data)
+        self.assertIn("Página 2 de 2".encode(), segunda_pagina.data)
 
     def test_admin_localiza_professor_e_redefine_senha(self):
         self.login(self.admin_id)
