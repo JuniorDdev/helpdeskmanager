@@ -8,7 +8,7 @@
     <p>Reserve espaços, consulte os horários e acompanhe os recados da equipe.</p>
   </div>
   <div class="page-actions">
-    <a class="btn btn-outline-secondary" href="{{ url_for('agendamento_laboratorios') }}">+ Solicitar laboratório</a>
+    <a class="btn btn-outline-secondary" href="#nova-reserva">+ Solicitar laboratório</a>
     {% if suporte %}<a class="btn btn-outline-primary" href="{{ url_for('agenda.relatorios') }}">Relatórios</a>{% endif %}
     {% if suporte %}<a class="btn btn-primary" href="{{ url_for('agenda.recados') }}">Gerenciar recados</a>{% endif %}
   </div>
@@ -83,7 +83,7 @@
               {% elif domingo or (sabado and turno.codigo == 'noite') %}
               <span class="slot-reserve-link disabled">{{ 'Indisponível aos domingos' if domingo else 'Indisponível aos sábados à noite' }}</span>
               {% else %}
-              <a class="slot-reserve-link" href="{{ url_for('agendamento_laboratorios') }}">+ Solicitar</a>
+              <a class="slot-reserve-link" href="{{ url_for('agenda.index', data=data_selecionada.isoformat(), lab=slot.laboratorio.id, turno=turno.codigo) }}#nova-reserva">+ Solicitar</a>
               {% endif %}
             </article>
             {% endfor %}
@@ -128,6 +128,7 @@
       <form method="post" action="{{ url_for('agenda.novo_agendamento') }}" class="row g-3">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="data_retorno" value="{{ data_selecionada.isoformat() }}">
+        <input type="hidden" name="ilha_codigo" id="reservaIlhaCodigo">
         <div class="col-12">
           <label class="form-label" for="responsavelNome">Nome do responsável</label>
           <input id="responsavelNome" name="responsavel_nome" class="form-control" maxlength="120" value="{{ current_user.nome }}" required>
@@ -149,6 +150,12 @@
           </select>
         </div>
         <div class="col-md-4">
+          <label class="form-label" for="reservaAlunos">Quantidade de alunos</label>
+          <input id="reservaAlunos" name="quantidade_alunos" type="number" min="1" max="56" class="form-control">
+          <div class="form-text" id="orientacaoReservaInterna">Informe a quantidade para filtrar as opções.</div>
+        </div>
+        <div class="col-12" id="opcoesIlhaInterna" hidden></div>
+        <div class="col-md-4" id="campoReservaLaboratorio">
           <label class="form-label" for="reservaLaboratorio">Laboratório</label>
           <select id="reservaLaboratorio" name="laboratorio_id" class="form-select" required>
             {% for laboratorio in laboratorios %}
@@ -286,4 +293,6 @@
     {% endif %}
   </aside>
 </div>
+{% if suporte %}<div id="agendaInternaConfiguracao" hidden data-disponibilidade="{{ disponibilidade_interna|tojson|forceescape }}" data-url-base="{{ url_for('agenda.index') }}"></div>{% endif %}
 {% endblock %}
+{% block scripts %}{% if suporte %}<script src="{{ url_for('static', filename='js/agenda-interna.js') }}" defer></script>{% endif %}{% endblock %}

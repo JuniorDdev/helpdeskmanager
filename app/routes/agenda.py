@@ -350,6 +350,7 @@ def index():
     )
     laboratorios = Laboratorio.query.filter_by(ativo=True).order_by(Laboratorio.nome).all()
     mapa_turnos = []
+    disponibilidade_interna = {}
     for codigo, turno in TURNOS.items():
         inicio_turno = datetime.combine(data_selecionada, turno["inicio"])
         fim_turno = datetime.combine(data_selecionada, turno["fim"])
@@ -388,6 +389,16 @@ def index():
                 "ilhas": ilhas,
             }
         )
+        disponibilidade_interna[codigo] = {
+            "laboratorios_disponiveis": [
+                slot["laboratorio"].id
+                for slot in slots
+                if not any(reserva.status == "agendado" for reserva in slot["reservas"])
+            ],
+            "ilhas_disponiveis": {
+                ilha["codigo"]: ilha["disponivel"] for ilha in ilhas
+            },
+        }
 
     preselected_lab_id = request.args.get("lab", type=int)
     if not any(item.id == preselected_lab_id for item in laboratorios):
@@ -426,6 +437,7 @@ def index():
         recados=recados,
         laboratorios=laboratorios,
         mapa_turnos=mapa_turnos,
+        disponibilidade_interna=disponibilidade_interna,
         turnos=TURNOS,
         preselected_lab_id=preselected_lab_id,
         preselected_turno=preselected_turno,
