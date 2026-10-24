@@ -18,6 +18,13 @@
   const softwareField = document.getElementById('campoSoftwares');
   const softwareText = document.getElementById('softwares');
 
+  document.querySelectorAll('.slot-reserve-link.disabled').forEach((aviso) => {
+    const cartao = aviso.closest('.lab-slot');
+    cartao?.classList.add('is-unavailable');
+    const status = cartao?.querySelector('.lab-slot-head span');
+    if (status) status.textContent = 'Indisponível';
+  });
+
   const softwareControl = software?.closest('.form-check');
   if (softwareControl) {
     softwareControl.innerHTML = '<label class="form-label" for="decisaoSoftware">Solicita instalação ou configuração de software?</label><select id="decisaoSoftware" class="form-select"><option value="nao" selected>Não</option><option value="sim">Sim</option></select>';

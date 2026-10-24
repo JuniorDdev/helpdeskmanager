@@ -363,6 +363,7 @@ main > h2,
 .lab-slot:nth-last-child(-n + 4) { border-bottom: 0; }
 .lab-slot.is-free { background: #fbfefd; }
 .lab-slot.is-occupied { background: #fffafb; }
+.lab-slot.is-unavailable { background: #fffafb; }
 .lab-slot.is-pending { background: #fffdf4; }
 .lab-slot-head { align-items: center; display: flex; gap: 7px; justify-content: space-between; }
 .lab-slot-head strong { font-size: .69rem; }
@@ -370,6 +371,7 @@ main > h2,
 .lab-slot-head span { border-radius: 999px; font-size: .54rem; font-weight: 850; padding: 4px 6px; text-transform: uppercase; }
 .lab-slot.is-free .lab-slot-head span { background: #e4f7f1; color: var(--success); }
 .lab-slot.is-occupied .lab-slot-head span { background: #fdebed; color: var(--danger); }
+.lab-slot.is-unavailable .lab-slot-head span { background: #fdebed; color: var(--danger); }
 .lab-slot.is-pending .lab-slot-head span { background: #fff0c7; color: #8a6200; }
 .slot-reserve-link {
   align-items: center;
@@ -385,6 +387,11 @@ main > h2,
   text-decoration: none;
 }
 .slot-reserve-link:hover { background: #edf9f5; color: #147a5f; }
+.slot-reserve-link.disabled {
+  background: #fff6f6;
+  border-color: #f0a8ad;
+  color: var(--danger) !important;
+}
 button.slot-reserve-link { background: transparent; width: 100%; }
 .capacity-incompatible { display: none; }
 .is-recommended { box-shadow: inset 0 0 0 2px rgba(68, 104, 242, .65); }
