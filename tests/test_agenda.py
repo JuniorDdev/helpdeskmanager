@@ -298,10 +298,13 @@ class AgendaRoutesTestCase(unittest.TestCase):
 
         self.login(outro_admin_id)
         response = self.client.get("/usuarios")
+        importacao = self.client.get("/agendamentos/importar-excel")
         menu = self.client.get("/")
 
         self.assertEqual(response.status_code, 403)
+        self.assertEqual(importacao.status_code, 403)
         self.assertNotIn("Matrículas e acessos".encode(), menu.data)
+        self.assertNotIn("Importar agenda".encode(), menu.data)
 
     def test_admin_localiza_professor_e_redefine_senha(self):
         self.login(self.admin_id)

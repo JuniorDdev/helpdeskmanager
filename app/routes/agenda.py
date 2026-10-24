@@ -25,7 +25,13 @@ from app.models import (
     Recado,
     Usuario,
 )
-from app.utils.authz import SUPPORT_ROLES, has_role, is_master_admin, roles_required
+from app.utils.authz import (
+    SUPPORT_ROLES,
+    has_role,
+    is_master_admin,
+    master_admin_required,
+    roles_required,
+)
 from app.services.notifications import notify_support as notify_general_support
 from app.utils.validation import (
     ValidationError,
@@ -451,7 +457,7 @@ def relatorios():
 
 
 @agenda_bp.route("/importar-excel", methods=["GET", "POST"])
-@roles_required("admin")
+@master_admin_required
 def importar_excel():
     """Importa reservas futuras dos laboratórios 5 a 8 a partir de um mapa Excel."""
     result = None
