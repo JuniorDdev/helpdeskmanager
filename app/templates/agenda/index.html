@@ -70,30 +70,13 @@
               </div>
               {% if slot.reservas %}
                 {% for item in slot.reservas %}
-                <div class="slot-booking">
+                <button class="slot-booking" type="button" data-bs-toggle="modal" data-bs-target="#agendamentoModal{{ item.id }}" aria-label="Abrir detalhes de {{ item.protocolo }}">
                   <h3>{{ item.titulo }}</h3>
                   {% if item.finalidade %}<p>{{ item.finalidade }}</p>{% endif %}
                   <small>{{ item.professor_nome or item.usuario.nome }} · {{ item.quantidade_alunos }} alunos{% if item.laboratorio.capacidade %} / {{ item.laboratorio.capacidade }} computadores{% endif %}</small>
                   <small>{{ item.protocolo }} · {{ status_labels[item.status] }}</small>
-                  {% if suporte or item.usuario_id == current_user.id %}
-                  <div class="slot-actions">
-                    <a href="{{ url_for('agenda.editar_agendamento', id=item.id) }}">Editar</a>
-                    <a href="{{ url_for('agenda.historico_agendamento', id=item.id) }}">Histórico</a>
-                    <form method="post" action="{{ url_for('agenda.cancelar_agendamento', id=item.id) }}" data-confirm="Cancelar esta reserva?">
-                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                      <input type="hidden" name="data_retorno" value="{{ data_selecionada.isoformat() }}">
-                      <button type="submit">Cancelar</button>
-                    </form>
-                    {% if suporte %}
-                    <form method="post" action="{{ url_for('agenda.excluir_agendamento', id=item.id) }}" data-confirm="Excluir do painel ativo e preservar o histórico?">
-                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                      <input type="hidden" name="data_retorno" value="{{ data_selecionada.isoformat() }}">
-                      <button type="submit">Excluir</button>
-                    </form>
-                    {% endif %}
-                  </div>
-                  {% endif %}
-                </div>
+                </button>
+                <div class="modal fade" id="agendamentoModal{{ item.id }}" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><div><small class="text-muted">{{ item.protocolo }}</small><h2 class="h5 mb-0">{{ item.titulo }}</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button></div><div class="modal-body"><p><strong>{{ item.laboratorio.nome }}</strong> · {{ item.inicio.strftime('%d/%m/%Y') }} · {{ item.turno_label }}</p><p><strong>Responsável:</strong> {{ item.professor_nome or item.usuario.nome }}</p><p><strong>Observações:</strong><br>{{ item.finalidade or 'Nenhuma observação.' }}</p>{% if item.softwares_necessarios %}<p><strong>Softwares necessários:</strong><br>{{ item.softwares_necessarios }}</p>{% endif %}</div><div class="modal-footer d-grid gap-2 d-sm-flex">{% if suporte or item.usuario_id == current_user.id %}<a class="btn btn-primary" href="{{ url_for('agenda.editar_agendamento', id=item.id) }}">Editar</a><a class="btn btn-outline-primary" href="{{ url_for('agenda.historico_agendamento', id=item.id) }}">Histórico</a><form method="post" action="{{ url_for('agenda.cancelar_agendamento', id=item.id) }}" data-confirm="Cancelar esta reserva?"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="data_retorno" value="{{ data_selecionada.isoformat() }}"><button class="btn btn-outline-danger" type="submit">Cancelar</button></form>{% if suporte %}<form method="post" action="{{ url_for('agenda.excluir_agendamento', id=item.id) }}" data-confirm="Excluir do painel ativo e preservar o histórico?"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="data_retorno" value="{{ data_selecionada.isoformat() }}"><button class="btn btn-danger" type="submit">Excluir</button></form>{% endif %}{% endif %}</div></div></div></div>
                 {% endfor %}
               {% elif domingo or (sabado and turno.codigo == 'noite') %}
               <span class="slot-reserve-link disabled">{{ 'Indisponível aos domingos' if domingo else 'Indisponível aos sábados à noite' }}</span>

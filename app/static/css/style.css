@@ -383,7 +383,9 @@ main > h2,
   text-decoration: none;
 }
 .slot-reserve-link:hover { background: #edf9f5; color: #147a5f; }
-.slot-booking + .slot-booking { border-top: 1px solid #f0dfe2; margin-top: 9px; padding-top: 9px; }
+.slot-booking { background: transparent; border: 0; cursor: pointer; padding: 0; text-align: left; width: 100%; }
+.slot-booking:hover, .slot-booking:focus-visible { background: #fff; border-radius: 8px; box-shadow: 0 8px 18px rgba(21, 43, 83, .12); outline: 2px solid #6382ff; outline-offset: 3px; padding: 7px; transform: scale(1.025); transition: .18s ease; }
+.slot-booking + .modal + .slot-booking { border-top: 1px solid #f0dfe2; margin-top: 9px; padding-top: 9px; }
 .slot-booking h3 { font-size: .7rem; font-weight: 800; line-height: 1.35; margin: 12px 0 4px; }
 .slot-booking p { color: var(--muted); display: -webkit-box; font-size: .59rem; line-height: 1.4; margin: 0 0 5px; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .slot-booking small { color: var(--muted); display: block; font-size: .56rem; }
