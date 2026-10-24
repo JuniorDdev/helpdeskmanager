@@ -24,7 +24,7 @@ from app.models import (
     Recado,
     Usuario,
 )
-from app.utils.authz import SUPPORT_ROLES, has_role, roles_required
+from app.utils.authz import SUPPORT_ROLES, has_role, is_master_admin, roles_required
 from app.services.notifications import notify_support as notify_general_support
 from app.utils.validation import (
     ValidationError,
@@ -132,13 +132,15 @@ def register_history(booking, action, description=None, actor=None):
     )
 
 
-def claim_booking(booking):
+def claim_booking(booking, allow_master_override=False):
     """Atribui a solicitação ao técnico atual ou valida o responsável já definido."""
     if not current_user.matricula:
         raise ValidationError(
             "Cadastre sua matrícula antes de tratar solicitações de agendamento."
         )
     if booking.atendido_por_id and booking.atendido_por_id != current_user.id:
+        if allow_master_override and is_master_admin():
+            return
         responsavel = booking.atendido_por
         raise ValidationError(
             f"Esta solicitação já está em atendimento por {responsavel.nome} ({responsavel.matricula})."
@@ -804,7 +806,7 @@ def cancelar_agendamento(id):
     if booking.status in STATUS_ATIVOS:
         try:
             if has_role(*SUPPORT_ROLES):
-                claim_booking(booking)
+                claim_booking(booking, allow_master_override=True)
             booking.status = "cancelado"
             booking.motivo_decisao = optional_text(request.form, "motivo_decisao") or "Cancelado pelo solicitante ou pela equipe."
             register_history(booking, "agendamento_cancelado", booking.motivo_decisao)
@@ -825,7 +827,7 @@ def excluir_agendamento(id):
     try:
         if booking.status == "excluido":
             raise ValidationError("Este agendamento já foi excluído.")
-        claim_booking(booking)
+        claim_booking(booking, allow_master_override=True)
         booking.status = "excluido"
         booking.motivo_decisao = optional_text(request.form, "motivo_decisao") or "Excluído pela equipe responsável."
         register_history(booking, "agendamento_excluido", booking.motivo_decisao)

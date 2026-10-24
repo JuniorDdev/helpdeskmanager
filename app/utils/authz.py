@@ -40,5 +40,10 @@ def master_admin_required(view):
     return wrapped
 
 
+def is_master_admin():
+    master_email = (current_app.config.get("MASTER_ADMIN_EMAIL") or "").casefold()
+    return current_user.is_authenticated and current_user.perfil == "admin" and current_user.email.casefold() == master_email
+
+
 def can_manage_ticket(chamado):
     return has_role(*SUPPORT_ROLES) or chamado.usuario_id == current_user.id
