@@ -18,10 +18,19 @@
   const softwareField = document.getElementById('campoSoftwares');
   const softwareText = document.getElementById('softwares');
 
-  software?.addEventListener('change', () => {
-    softwareField.classList.toggle('d-none', !software.checked);
-    softwareText.required = software.checked;
-  });
+  const softwareControl = software?.closest('.form-check');
+  if (softwareControl) {
+    softwareControl.innerHTML = '<label class="form-label" for="decisaoSoftware">Solicita instalação ou configuração de software?</label><select id="decisaoSoftware" class="form-select"><option value="nao" selected>Não</option><option value="sim">Sim</option></select>';
+    const decisaoSoftware = document.getElementById('decisaoSoftware');
+    const atualizarSoftware = () => {
+      const solicitar = decisaoSoftware.value === 'sim';
+      softwareField.classList.toggle('d-none', !solicitar);
+      softwareText.required = solicitar;
+      if (!solicitar) softwareText.value = '';
+    };
+    decisaoSoftware.addEventListener('change', atualizarSoftware);
+    atualizarSoftware();
+  }
 
   function atualizarOpcoes() {
     const quantidade = Number(alunos.value || 0);
